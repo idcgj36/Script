@@ -3,19 +3,17 @@ local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
-local Fun = {}
+local C5 = {}
 
--- Tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Name = "FunNotificationUI"
+ScreenGui.Name = "C5NotificationUI"
 ScreenGui.Parent = PlayerGui
 
--- Container để chứa nhiều notify
 local Container = Instance.new("Frame")
 Container.BackgroundTransparency = 1
-Container.Size = UDim2.fromScale(0.3, 1) -- chiếm 30% chiều rộng màn hình
-Container.Position = UDim2.new(1, 0, 0, 0) -- nằm bên phải
+Container.Size = UDim2.fromScale(0.3, 1)
+Container.Position = UDim2.new(1, 0, 0, 0)
 Container.AnchorPoint = Vector2.new(1, 0)
 Container.Parent = ScreenGui
 
@@ -24,7 +22,7 @@ ListLayout.Parent = Container
 ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 ListLayout.Padding = UDim.new(0, 10)
 
-function Fun:Notify(config)
+function C5:Notify(config)
     local Message = config.Message or "No message"
     local Description = config.Description or ""
     local IconId = config.Icon or "rbxassetid://104496260455729"
@@ -33,8 +31,8 @@ function Fun:Notify(config)
     local Frame = Instance.new("Frame")
     Frame.BorderSizePixel = 0
     Frame.BackgroundColor3 = Color3.fromRGB(36, 36, 36)
-    Frame.Size = UDim2.fromScale(1, 0.2) -- cao 20% chiều cao container
-    Frame.AutomaticSize = Enum.AutomaticSize.Y -- tự scale theo text nếu dài
+    Frame.Size = UDim2.fromScale(1, 0.2)
+    Frame.AutomaticSize = Enum.AutomaticSize.Y
     Frame.Parent = Container
 
     local UICorner = Instance.new("UICorner")
@@ -50,7 +48,7 @@ function Fun:Notify(config)
 
     local Icon = Instance.new("ImageLabel")
     Icon.BorderSizePixel = 0
-    Icon.BackgroundColor3 = Color3.fromRGB(72, 72, 72)
+    Icon.BackgroundTransparency = 1
     Icon.Image = IconId
     Icon.Size = UDim2.fromScale(0.18, 0.35)
     Icon.Position = UDim2.new(0, 8, 0, 8)
@@ -85,12 +83,10 @@ function Fun:Notify(config)
     Describe.Position = UDim2.new(0, 8, 0, 44)
     Describe.Parent = Frame
 
-    -- hiệu ứng thanh thời gian
     TweenService:Create(DurationBar, TweenInfo.new(Duration, Enum.EasingStyle.Linear), {
         Size = UDim2.new(0, 0, 0, 3)
     }):Play()
 
-    -- tự ẩn sau Duration
     task.delay(Duration, function()
         TweenService:Create(Frame, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
         for _, obj in ipairs(Frame:GetDescendants()) do
@@ -103,4 +99,4 @@ function Fun:Notify(config)
     end)
 end
 
-return Fun
+return C5
