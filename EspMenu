@@ -673,4 +673,5 @@ window:Button("Clear ESP", function()
         end
     end
     Highlights = {}
+
 end)
