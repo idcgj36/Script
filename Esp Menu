@@ -1,0 +1,671 @@
+local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/mdvdhh/Library/refs/heads/main/Dirt",true))()
+local Table = {}
+
+local window = Lib:CreateWindow("Esp Menu")
+
+window:Section("Main")
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Table = {}
+local NameESPEnabled = false
+
+local function ApplyNameESP(player)
+    if not NameESPEnabled then return end
+    if player.Character and player.Character:FindFirstChild("Head") then
+        if not player.Character.Head:FindFirstChild("NameESP") then
+            local Billboard = Instance.new("BillboardGui")
+            Billboard.Name = "NameESP"
+            Billboard.Size = UDim2.new(0, 100, 0, 25) -- nhỏ lại
+            Billboard.Adornee = player.Character.Head
+            Billboard.AlwaysOnTop = true
+            Billboard.Parent = player.Character.Head
+
+            local Text = Instance.new("TextLabel")
+            Text.Size = UDim2.new(1, 0, 1, 0)
+            Text.BackgroundTransparency = 1
+            Text.Text = player.Name
+            Text.TextStrokeTransparency = 0
+            Text.Font = Enum.Font.SourceSansBold
+            Text.TextScaled = true -- auto scale chữ
+            Text.TextSize = 12 -- nhỏ hơn
+            Text.Parent = Billboard
+
+            if player.Team and player.Team.TeamColor then
+                Text.TextColor3 = player.Team.TeamColor.Color
+            else
+                Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+            end
+
+            player:GetPropertyChangedSignal("Team"):Connect(function()
+                if Text and Text.Parent then
+                    if player.Team and player.Team.TeamColor then
+                        Text.TextColor3 = player.Team.TeamColor.Color
+                    else
+                        Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    end
+                end
+            end)
+        end
+    end
+end
+
+local function RemoveNameESP(player)
+    if player.Character and player.Character:FindFirstChild("Head") then
+        if player.Character.Head:FindFirstChild("NameESP") then
+            player.Character.Head.NameESP:Destroy()
+        end
+    end
+end
+
+window:Toggle("Name ESP", {
+    location = Table,
+    flag = "NameESP"
+}, function(state)
+    NameESPEnabled = state
+    if state then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                ApplyNameESP(player)
+            end
+        end
+        Players.PlayerAdded:Connect(function(player)
+            player.CharacterAdded:Connect(function()
+                if NameESPEnabled then
+                    ApplyNameESP(player)
+                end
+            end)
+        end)
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                RemoveNameESP(player)
+            end
+        end
+    end
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+local Table = {}
+local LineESPEnabled = false
+local Drawings = {}
+
+local function CreateLine(player)
+    if not Drawings[player] then
+        local line = Drawing.new("Line")
+        line.Thickness = 1.5
+        line.Color = Color3.fromRGB(255, 255, 255)
+        line.Visible = false
+        Drawings[player] = line
+    end
+end
+
+local function RemoveLine(player)
+    if Drawings[player] then
+        Drawings[player]:Remove()
+        Drawings[player] = nil
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not LineESPEnabled then
+        for _, line in pairs(Drawings) do
+            line.Visible = false
+        end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            if not Drawings[player] then
+                CreateLine(player)
+            end
+            local line = Drawings[player]
+            if onScreen then
+                line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y) -- dưới giữa màn hình
+                line.To = Vector2.new(pos.X, pos.Y)
+                if player.Team and player.Team.TeamColor then
+                    line.Color = player.Team.TeamColor.Color
+                else
+                    line.Color = Color3.fromRGB(255, 255, 255)
+                end
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        elseif Drawings[player] then
+            Drawings[player].Visible = false
+        end
+    end
+end)
+
+window:Toggle("Tracer ESP", {
+    location = Table,
+    flag = "LineESP"
+}, function(state)
+    LineESPEnabled = state
+    if not state then
+        for _, line in pairs(Drawings) do
+            line.Visible = false
+        end
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                CreateLine(player)
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveLine(player)
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+local Table = {}
+local BoxESPEnabled = false
+local Boxes = {}
+
+local function CreateBox(player)
+    if not Boxes[player] then
+        local box = Drawing.new("Square")
+        box.Thickness = 1.5
+        box.Filled = false
+        box.Visible = false
+        Boxes[player] = box
+    end
+end
+
+local function RemoveBox(player)
+    if Boxes[player] then
+        Boxes[player]:Remove()
+        Boxes[player] = nil
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not BoxESPEnabled then
+        for _, box in pairs(Boxes) do
+            box.Visible = false
+        end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = player.Character.HumanoidRootPart
+            local cframe = hrp.CFrame
+            local size = hrp.Size + Vector3.new(2, 3, 1) -- rộng và cao hơn
+            local corners = {
+                cframe * CFrame.new(size.X, size.Y, size.Z).Position,
+                cframe * CFrame.new(-size.X, size.Y, size.Z).Position,
+                cframe * CFrame.new(size.X, -size.Y, size.Z).Position,
+                cframe * CFrame.new(-size.X, -size.Y, size.Z).Position,
+                cframe * CFrame.new(size.X, size.Y, -size.Z).Position,
+                cframe * CFrame.new(-size.X, size.Y, -size.Z).Position,
+                cframe * CFrame.new(size.X, -size.Y, -size.Z).Position,
+                cframe * CFrame.new(-size.X, -size.Y, -size.Z).Position
+            }
+
+            local minX, minY = math.huge, math.huge
+            local maxX, maxY = -math.huge, -math.huge
+            local onScreen = false
+
+            for _, corner in pairs(corners) do
+                local pos, vis = Camera:WorldToViewportPoint(corner)
+                if vis then
+                    onScreen = true
+                    minX, minY = math.min(minX, pos.X), math.min(minY, pos.Y)
+                    maxX, maxY = math.max(maxX, pos.X), math.max(maxY, pos.Y)
+                end
+            end
+
+            if not Boxes[player] then
+                CreateBox(player)
+            end
+            local box = Boxes[player]
+            if onScreen then
+                box.Position = Vector2.new(minX, minY)
+                box.Size = Vector2.new(maxX - minX, maxY - minY)
+                if player.Team and player.Team.TeamColor then
+                    box.Color = player.Team.TeamColor.Color
+                else
+                    box.Color = Color3.fromRGB(255, 255, 255)
+                end
+                box.Visible = true
+            else
+                box.Visible = false
+            end
+        elseif Boxes[player] then
+            Boxes[player].Visible = false
+        end
+    end
+end)
+
+window:Toggle("Box ESP", {
+    location = Table,
+    flag = "BoxESP"
+}, function(state)
+    BoxESPEnabled = state
+    if not state then
+        for _, box in pairs(Boxes) do
+            box.Visible = false
+        end
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                CreateBox(player)
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveBox(player)
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Table = {}
+local HealthESPEnabled = false
+local HealthBars = {}
+
+local function CreateHealthBar(player)
+    if player.Character and player.Character:FindFirstChild("Head") and not HealthBars[player] then
+        local Billboard = Instance.new("BillboardGui")
+        Billboard.Name = "HealthESP"
+        Billboard.Size = UDim2.new(4, 0, 0.5, 0)
+        Billboard.StudsOffset = Vector3.new(0, 3, 0) -- hiển thị trên đầu
+        Billboard.AlwaysOnTop = true
+        Billboard.Adornee = player.Character.Head
+        Billboard.Parent = player.Character.Head
+
+        local Background = Instance.new("Frame")
+        Background.Size = UDim2.new(1, 0, 1, 0)
+        Background.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        Background.BorderSizePixel = 0
+        Background.Parent = Billboard
+
+        local Bar = Instance.new("Frame")
+        Bar.Size = UDim2.new(1, 0, 1, 0)
+        Bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        Bar.BorderSizePixel = 0
+        Bar.Parent = Background
+
+        HealthBars[player] = {Gui = Billboard, Bar = Bar}
+    end
+end
+
+local function RemoveHealthBar(player)
+    if HealthBars[player] then
+        HealthBars[player].Gui:Destroy()
+        HealthBars[player] = nil
+    end
+end
+
+local function UpdateHealth(player)
+    if HealthESPEnabled and HealthBars[player] and player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local hp = humanoid.Health
+            local maxhp = humanoid.MaxHealth
+            local ratio = math.clamp(hp / maxhp, 0, 1)
+            HealthBars[player].Bar.Size = UDim2.new(ratio, 0, 1, 0)
+            if ratio > 0.5 then
+                HealthBars[player].Bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            elseif ratio > 0.25 then
+                HealthBars[player].Bar.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+            else
+                HealthBars[player].Bar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    end
+end
+
+-- Auto update health
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        if HealthESPEnabled then
+            CreateHealthBar(player)
+        end
+    end)
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if HealthESPEnabled then
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                if player.Character and player.Character:FindFirstChild("Head") then
+                    if not HealthBars[player] then
+                        CreateHealthBar(player)
+                    end
+                    UpdateHealth(player)
+                end
+            end
+        end
+    end
+end)
+
+window:Toggle("Health ESP", {
+    location = Table,
+    flag = "HealthESP"
+}, function(state)
+    HealthESPEnabled = state
+    if not state then
+        for _, v in pairs(HealthBars) do
+            v.Gui:Destroy()
+        end
+        HealthBars = {}
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                CreateHealthBar(player)
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveHealthBar(player)
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+local Table = {}
+local SkeletonESPEnabled = false
+local Skeletons = {}
+
+local function CreateSkeleton(player)
+    if not Skeletons[player] then
+        Skeletons[player] = {}
+        local parts = {"Head","UpperTorso","LowerTorso","LeftUpperArm","LeftLowerArm","LeftHand",
+                       "RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot",
+                       "RightUpperLeg","RightLowerLeg","RightFoot"}
+        for _,_ in pairs(parts) do
+            local line = Drawing.new("Line")
+            line.Thickness = 1
+            line.Visible = false
+            Skeletons[player][#Skeletons[player]+1] = line
+        end
+    end
+end
+
+local function RemoveSkeleton(player)
+    if Skeletons[player] then
+        for _, line in pairs(Skeletons[player]) do
+            line:Remove()
+        end
+        Skeletons[player] = nil
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    if not SkeletonESPEnabled then
+        for _, skel in pairs(Skeletons) do
+            for _, line in pairs(skel) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local char = player.Character
+            if char:FindFirstChild("Head") and char:FindFirstChild("HumanoidRootPart") then
+                if not Skeletons[player] then
+                    CreateSkeleton(player)
+                end
+
+                local parts = {
+                    Head = char:FindFirstChild("Head"),
+                    UpperTorso = char:FindFirstChild("UpperTorso"),
+                    LowerTorso = char:FindFirstChild("LowerTorso"),
+                    LUA = char:FindFirstChild("LeftUpperArm"),
+                    LLA = char:FindFirstChild("LeftLowerArm"),
+                    LH = char:FindFirstChild("LeftHand"),
+                    RUA = char:FindFirstChild("RightUpperArm"),
+                    RLA = char:FindFirstChild("RightLowerArm"),
+                    RH = char:FindFirstChild("RightHand"),
+                    LUL = char:FindFirstChild("LeftUpperLeg"),
+                    LLL = char:FindFirstChild("LeftLowerLeg"),
+                    LF = char:FindFirstChild("LeftFoot"),
+                    RUL = char:FindFirstChild("RightUpperLeg"),
+                    RLL = char:FindFirstChild("RightLowerLeg"),
+                    RF = char:FindFirstChild("RightFoot"),
+                }
+
+                local connections = {
+                    {parts.Head, parts.UpperTorso},
+                    {parts.UpperTorso, parts.LowerTorso},
+                    {parts.UpperTorso, parts.LUA},
+                    {parts.LUA, parts.LLA},
+                    {parts.LLA, parts.LH},
+                    {parts.UpperTorso, parts.RUA},
+                    {parts.RUA, parts.RLA},
+                    {parts.RLA, parts.RH},
+                    {parts.LowerTorso, parts.LUL},
+                    {parts.LUL, parts.LLL},
+                    {parts.LLL, parts.LF},
+                    {parts.LowerTorso, parts.RUL},
+                    {parts.RUL, parts.RLL},
+                    {parts.RLL, parts.RF},
+                }
+
+                local i = 1
+                for _, conn in pairs(connections) do
+                    local p1, p2 = conn[1], conn[2]
+                    local line = Skeletons[player][i]
+                    if p1 and p2 then
+                        local pos1, vis1 = Camera:WorldToViewportPoint(p1.Position)
+                        local pos2, vis2 = Camera:WorldToViewportPoint(p2.Position)
+                        if vis1 and vis2 then
+                            line.From = Vector2.new(pos1.X, pos1.Y)
+                            line.To = Vector2.new(pos2.X, pos2.Y)
+                            if player.Team and player.Team.TeamColor then
+                                line.Color = player.Team.TeamColor.Color
+                            else
+                                line.Color = Color3.fromRGB(255,255,255)
+                            end
+                            line.Visible = true
+                        else
+                            line.Visible = false
+                        end
+                    else
+                        line.Visible = false
+                    end
+                    i += 1
+                end
+            elseif Skeletons[player] then
+                for _, line in pairs(Skeletons[player]) do
+                    line.Visible = false
+                end
+            end
+        end
+    end
+end)
+
+window:Toggle("Skeleton ESP", {
+    location = Table,
+    flag = "SkeletonESP"
+}, function(state)
+    SkeletonESPEnabled = state
+    if not state then
+        for _, skel in pairs(Skeletons) do
+            for _, line in pairs(skel) do
+                line.Visible = false
+            end
+        end
+    else
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                CreateSkeleton(player)
+            end
+        end
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveSkeleton(player)
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Table = {}
+local ToolESPEnabled = false
+local Highlights = {}
+
+local function HighlightObject(obj)
+    if not Highlights[obj] and obj:IsA("Tool") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ToolESP"
+        highlight.FillColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("Handle") or obj
+        highlight.Parent = obj
+        Highlights[obj] = highlight
+    end
+end
+
+local function RemoveHighlight(obj)
+    if Highlights[obj] then
+        Highlights[obj]:Destroy()
+        Highlights[obj] = nil
+    end
+end
+
+-- Quét workspace
+local function ScanWorkspace()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if ToolESPEnabled and obj:IsA("Tool") then
+            HighlightObject(obj)
+        end
+    end
+end
+
+-- Quét backpack
+local function ScanBackpacks()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            for _, tool in pairs(player.Backpack:GetChildren()) do
+                if ToolESPEnabled then
+                    HighlightObject(tool)
+                end
+            end
+            player.Backpack.ChildAdded:Connect(function(tool)
+                if ToolESPEnabled then
+                    HighlightObject(tool)
+                end
+            end)
+            player.Backpack.ChildRemoved:Connect(function(tool)
+                RemoveHighlight(tool)
+            end)
+        end
+    end
+end
+
+-- Toggle
+window:Toggle("Tool ESP", {
+    location = Table,
+    flag = "ToolESP"
+}, function(state)
+    ToolESPEnabled = state
+    if state then
+        ScanWorkspace()
+        ScanBackpacks()
+        workspace.DescendantAdded:Connect(function(obj)
+            if ToolESPEnabled and obj:IsA("Tool") then
+                HighlightObject(obj)
+            end
+        end)
+        workspace.DescendantRemoving:Connect(function(obj)
+            RemoveHighlight(obj)
+        end)
+    else
+        for obj, hl in pairs(Highlights) do
+            hl:Destroy()
+        end
+        Highlights = {}
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    for _, tool in pairs(player.Backpack:GetChildren()) do
+        RemoveHighlight(tool)
+    end
+end)
+
+window:Button("Clear ESP", function()
+    -- Tắt tất cả flag toggle
+    Table["NameESP"] = false
+    Table["LineESP"] = false
+    Table["BoxESP"] = false
+    Table["SkeletonESP"] = false
+    Table["HealthESP"] = false
+    Table["ToolESP"] = false
+
+    -- Xoá Name + Health ESP
+    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("Head") then
+            if player.Character.Head:FindFirstChild("NameESP") then
+                player.Character.Head.NameESP:Destroy()
+            end
+            if player.Character.Head:FindFirstChild("HealthESP") then
+                player.Character.Head.HealthESP:Destroy()
+            end
+        end
+    end
+
+    -- Xoá Drawing (Line, Box, Skeleton)
+    if Drawings then
+        for _, obj in pairs(Drawings) do
+            obj:Remove()
+        end
+        Drawings = {}
+    end
+    if Boxes then
+        for _, obj in pairs(Boxes) do
+            obj:Remove()
+        end
+        Boxes = {}
+    end
+    if Skeletons then
+        for _, skel in pairs(Skeletons) do
+            for _, line in pairs(skel) do
+                line:Remove()
+            end
+        end
+        Skeletons = {}
+    end
+
+    -- Xoá Health ESP
+    if HealthBars then
+        for _, v in pairs(HealthBars) do
+            v.Gui:Destroy()
+        end
+        HealthBars = {}
+    end
+
+    -- Xoá Tool Highlight
+    if Highlights then
+        for _, hl in pairs(Highlights) do
+            hl:Destroy()
+        end
+        Highlights = {}
+    end
+end)
