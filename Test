@@ -1,0 +1,171 @@
+--// Fun Library Ui
+local FunLibrary = {}
+
+function FunLibrary:CreateWindow(settings)
+    local title = settings.Title or "Library Ui"
+    local player = game.Players.LocalPlayer
+    local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+    gui.Name = "Fun_Library"
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    --// Main
+    local Main = Instance.new("Frame", gui)
+    Main.BackgroundColor3 = Color3.fromRGB(41, 41, 41)
+    Main.Size = UDim2.new(0, 430, 0, 230)
+    Main.Position = UDim2.new(0, 170, 0, 0)
+    Main.Active = true
+    Main.Draggable = true
+    Instance.new("UICorner", Main)
+
+    local Topbar = Instance.new("Frame", Main)
+    Topbar.BackgroundTransparency = 1
+    Topbar.Size = UDim2.new(1, 0, 0, 22)
+    local Label = Instance.new("TextLabel", Topbar)
+    Label.Text = title
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.fromRGB(255,255,255)
+    Label.Size = UDim2.new(0, 200, 0, 20)
+    Label.Position = UDim2.new(0,5,0,1)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local Close = Instance.new("TextButton", Topbar)
+    Close.Text = "×"
+    Close.TextColor3 = Color3.fromRGB(255,255,255)
+    Close.BackgroundTransparency = 1
+    Close.Size = UDim2.new(0,22,0,22)
+    Close.Position = UDim2.new(1,-25,0,0)
+    Close.MouseButton1Click:Connect(function()
+        gui:Destroy()
+    end)
+
+    local Line = Instance.new("Frame", Main)
+    Line.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Line.BackgroundTransparency = 0.3
+    Line.Size = UDim2.new(1,0,0,1)
+    Line.Position = UDim2.new(0,0,0,22)
+
+    local LeftFrame = Instance.new("Frame", Main)
+    LeftFrame.BackgroundColor3 = Color3.fromRGB(72,72,72)
+    LeftFrame.Position = UDim2.new(0,8,0,32)
+    LeftFrame.Size = UDim2.new(0,100,0,190)
+    Instance.new("UICorner", LeftFrame)
+
+    local RightFrame = Instance.new("Frame", Main)
+    RightFrame.BackgroundColor3 = Color3.fromRGB(72,72,72)
+    RightFrame.Position = UDim2.new(0,120,0,32)
+    RightFrame.Size = UDim2.new(0,302,0,190)
+    Instance.new("UICorner", RightFrame)
+
+    local TabList = Instance.new("ScrollingFrame", LeftFrame)
+    TabList.Size = UDim2.new(1,-5,1,-4)
+    TabList.Position = UDim2.new(0,2,0,2)
+    TabList.BackgroundTransparency = 1
+    TabList.ScrollBarThickness = 2
+
+    local function createTab(tabName)
+        local TabButton = Instance.new("TextButton", TabList)
+        TabButton.Text = tabName
+        TabButton.Size = UDim2.new(0,86,0,28)
+        TabButton.Position = UDim2.new(0,4,0,TabList.UIListLayout and TabList.UIListLayout.AbsoluteContentSize.Y or 8)
+        TabButton.BackgroundColor3 = Color3.fromRGB(189,189,189)
+        Instance.new("UICorner", TabButton)
+
+        local TabFrame = Instance.new("ScrollingFrame", RightFrame)
+        TabFrame.Visible = false
+        TabFrame.Size = UDim2.new(1,-4,1,-4)
+        TabFrame.Position = UDim2.new(0,2,0,2)
+        TabFrame.BackgroundTransparency = 1
+        TabFrame.ScrollBarThickness = 2
+
+        if not TabList:FindFirstChild("UIListLayout") then
+            local layout = Instance.new("UIListLayout", TabList)
+            layout.Padding = UDim.new(0,5)
+        end
+
+        if not TabFrame:FindFirstChild("UIListLayout") then
+            local layout = Instance.new("UIListLayout", TabFrame)
+            layout.Padding = UDim.new(0,5)
+        end
+
+        TabButton.MouseButton1Click:Connect(function()
+            for _, child in ipairs(RightFrame:GetChildren()) do
+                if child:IsA("ScrollingFrame") then
+                    child.Visible = false
+                end
+            end
+            TabFrame.Visible = true
+        end)
+
+        local tabAPI = {}
+
+        function tabAPI:AddButton(name, callback)
+            local Btn = Instance.new("TextButton", TabFrame)
+            Btn.Text = name
+            Btn.Size = UDim2.new(0,280,0,28)
+            Btn.BackgroundColor3 = Color3.fromRGB(199,199,199)
+            Instance.new("UICorner", Btn)
+            Btn.MouseButton1Click:Connect(callback)
+        end
+
+        function tabAPI:AddToggle(name, default, callback)
+            local Toggle = Instance.new("Frame", TabFrame)
+            Toggle.Size = UDim2.new(0,280,0,30)
+            Toggle.BackgroundTransparency = 0.3
+            Toggle.BackgroundColor3 = Color3.fromRGB(255,255,255)
+            Instance.new("UICorner", Toggle)
+
+            local Label = Instance.new("TextLabel", Toggle)
+            Label.Text = name
+            Label.BackgroundTransparency = 1
+            Label.Size = UDim2.new(0,150,1,0)
+            Label.TextColor3 = Color3.new(0,0,0)
+            Label.TextXAlignment = Enum.TextXAlignment.Left
+            Label.Position = UDim2.new(0,10,0,0)
+
+            local Btn = Instance.new("TextButton", Toggle)
+            Btn.BackgroundColor3 = Color3.fromRGB(108,108,108)
+            Btn.Size = UDim2.new(0,76,0,26)
+            Btn.Position = UDim2.new(1,-80,0,2)
+            Btn.Text = ""
+            Instance.new("UICorner", Btn)
+
+            local Knob = Instance.new("Frame", Btn)
+            Knob.Size = UDim2.new(0,24,0,20)
+            Knob.Position = UDim2.new(default and 0.6 or 0.1, 0, 0.1, 0)
+            Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
+            local c = Instance.new("UICorner", Knob)
+            c.CornerRadius = UDim.new(0,7)
+
+            local state = default
+            Btn.MouseButton1Click:Connect(function()
+                state = not state
+                Knob:TweenPosition(UDim2.new(state and 0.6 or 0.1,0,0.1,0),"Out","Sine",0.2,true)
+                callback(state)
+            end)
+        end
+
+        function tabAPI:AddBox(placeholder, callback)
+            local Box = Instance.new("TextBox", TabFrame)
+            Box.Size = UDim2.new(0,280,0,26)
+            Box.PlaceholderText = placeholder
+            Box.Text = ""
+            Box.BackgroundColor3 = Color3.fromRGB(175,175,175)
+            Box.TextColor3 = Color3.new(0,0,0)
+            Instance.new("UICorner", Box)
+            Box.FocusLost:Connect(function()
+                callback(Box.Text)
+            end)
+        end
+
+        return tabAPI
+    end
+
+    local windowAPI = {}
+    function windowAPI:CreateTab(name)
+        return createTab(name)
+    end
+
+    return windowAPI
+end
+
+return FunLibrary
