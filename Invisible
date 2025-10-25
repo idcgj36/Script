@@ -1,0 +1,141 @@
+local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local RealCharacter = player.Character or player.CharacterAdded:Wait()
+RealCharacter.Archivable = true
+
+local N2ZL9XQ7 = Instance.new("ScreenGui")
+N2ZL9XQ7.Name = "InvisibleGui"
+N2ZL9XQ7.Parent = game:GetService("CoreGui")
+CollectionService:AddTag(N2ZL9XQ7, "main")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.BorderSizePixel = 0
+MainFrame.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
+MainFrame.Size = UDim2.new(0, 98, 0, 72)
+MainFrame.Position = UDim2.new(0, 202, 0, 6)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = N2ZL9XQ7
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.BorderSizePixel = 0
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.Size = UDim2.new(0, 66, 0, 28)
+ToggleButton.Position = UDim2.new(0, 14, 0, 22)
+ToggleButton.Text = ""
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = MainFrame
+
+local Track = Instance.new("Frame")
+Track.BorderSizePixel = 0
+Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Track.Size = UDim2.new(0, 24, 0, 24)
+Track.Position = UDim2.new(0, 2, 0, 2)
+Track.Name = "Track"
+Track.Parent = ToggleButton
+
+local UICorner1 = Instance.new("UICorner")
+UICorner1.CornerRadius = UDim.new(0, 50)
+UICorner1.Parent = Track
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0, 50)
+UICorner2.Parent = ToggleButton
+
+local UICorner3 = Instance.new("UICorner")
+UICorner3.CornerRadius = UDim.new(0, 6)
+UICorner3.Parent = MainFrame
+
+local UIAspectRatioConstraint = Instance.new("UIAspectRatioConstraint")
+UIAspectRatioConstraint.AspectRatio = 1.36111
+UIAspectRatioConstraint.AspectType = Enum.AspectType.ScaleWithParentSize
+UIAspectRatioConstraint.Parent = MainFrame
+
+local Transparency = true
+local IsInvisible = false
+local FakeCharacter = RealCharacter:Clone()
+local Part = Instance.new("Part", workspace)
+Part.Anchored = true
+Part.Size = Vector3.new(200, 1, 200)
+Part.CFrame = CFrame.new(0, -500, 0)
+Part.CanCollide = true
+
+FakeCharacter.Parent = workspace
+FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+
+for _, v in pairs(RealCharacter:GetChildren()) do
+	if v:IsA("LocalScript") then
+		local clone = v:Clone()
+		clone.Disabled = true
+		clone.Parent = FakeCharacter
+	end
+end
+
+if Transparency then
+	for _, v in pairs(FakeCharacter:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = 0.9
+		end
+	end
+end
+
+local PseudoAnchor = FakeCharacter:WaitForChild("HumanoidRootPart")
+
+RunService.RenderStepped:Connect(function()
+	if PseudoAnchor then
+		PseudoAnchor.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+	end
+end)
+
+local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function AnimateToggle(isOn)
+	local colorTarget = isOn and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+	local posTarget = isOn and UDim2.new(0, 40, 0, 2) or UDim2.new(0, 2, 0, 2)
+	TweenService:Create(ToggleButton, tweenInfo, { BackgroundColor3 = colorTarget }):Play()
+	TweenService:Create(Track, tweenInfo, { Position = posTarget }):Play()
+end
+
+local function ToggleInvisible()
+	if not IsInvisible then
+		local stored = RealCharacter.HumanoidRootPart.CFrame
+		RealCharacter.HumanoidRootPart.CFrame = FakeCharacter.HumanoidRootPart.CFrame
+		for i = 1, 5 do
+			FakeCharacter.HumanoidRootPart.CFrame = stored
+		end
+		RealCharacter.Humanoid:UnequipTools()
+		player.Character = FakeCharacter
+		workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
+		PseudoAnchor = RealCharacter.HumanoidRootPart
+		for _, v in pairs(FakeCharacter:GetChildren()) do
+			if v:IsA("LocalScript") then
+				v.Disabled = false
+			end
+		end
+		IsInvisible = true
+	else
+		local stored = FakeCharacter.HumanoidRootPart.CFrame
+		FakeCharacter.HumanoidRootPart.CFrame = RealCharacter.HumanoidRootPart.CFrame
+		for i = 1, 5 do
+			RealCharacter.HumanoidRootPart.CFrame = stored
+		end
+		FakeCharacter.Humanoid:UnequipTools()
+		player.Character = RealCharacter
+		workspace.CurrentCamera.CameraSubject = RealCharacter.Humanoid
+		PseudoAnchor = FakeCharacter.HumanoidRootPart
+		for _, v in pairs(FakeCharacter:GetChildren()) do
+			if v:IsA("LocalScript") then
+				v.Disabled = true
+			end
+		end
+		IsInvisible = false
+	end
+	AnimateToggle(IsInvisible)
+end
+
+ToggleButton.MouseButton1Click:Connect(ToggleInvisible)
