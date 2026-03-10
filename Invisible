@@ -1,141 +1,158 @@
+if _G.a then
+    for _, v in pairs(_G.a) do
+        v:Disconnect()
+    end
+    _G.a = nil
+end
+
+_G.WertUiAnimation = true
+local WertUi = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/idcgj36/WertNotify/refs/heads/main/Obfuscate.lua",
+    true
+))()
+
 local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
-local player = Players.LocalPlayer
-local RealCharacter = player.Character or player.CharacterAdded:Wait()
-RealCharacter.Archivable = true
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = workspace.CurrentCamera
 
-local N2ZL9XQ7 = Instance.new("ScreenGui")
-N2ZL9XQ7.Name = "InvisibleGui"
-N2ZL9XQ7.Parent = game:GetService("CoreGui")
-CollectionService:AddTag(N2ZL9XQ7, "main")
+local Character, Humanoid, RootPart
+local InvisibleEnabled = false
+local Parts = {}
 
-local MainFrame = Instance.new("Frame")
-MainFrame.BorderSizePixel = 0
-MainFrame.BackgroundColor3 = Color3.fromRGB(29, 29, 29)
-MainFrame.Size = UDim2.new(0, 98, 0, 72)
-MainFrame.Position = UDim2.new(0, 202, 0, 6)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = N2ZL9XQ7
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.BorderSizePixel = 0
-ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-ToggleButton.Size = UDim2.new(0, 66, 0, 28)
-ToggleButton.Position = UDim2.new(0, 14, 0, 22)
-ToggleButton.Text = ""
-ToggleButton.Name = "ToggleButton"
-ToggleButton.Parent = MainFrame
-
-local Track = Instance.new("Frame")
-Track.BorderSizePixel = 0
-Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Track.Size = UDim2.new(0, 24, 0, 24)
-Track.Position = UDim2.new(0, 2, 0, 2)
-Track.Name = "Track"
-Track.Parent = ToggleButton
-
-local UICorner1 = Instance.new("UICorner")
-UICorner1.CornerRadius = UDim.new(0, 50)
-UICorner1.Parent = Track
-
-local UICorner2 = Instance.new("UICorner")
-UICorner2.CornerRadius = UDim.new(0, 50)
-UICorner2.Parent = ToggleButton
-
-local UICorner3 = Instance.new("UICorner")
-UICorner3.CornerRadius = UDim.new(0, 6)
-UICorner3.Parent = MainFrame
-
-local UIAspectRatioConstraint = Instance.new("UIAspectRatioConstraint")
-UIAspectRatioConstraint.AspectRatio = 1.36111
-UIAspectRatioConstraint.AspectType = Enum.AspectType.ScaleWithParentSize
-UIAspectRatioConstraint.Parent = MainFrame
-
-local Transparency = true
-local IsInvisible = false
-local FakeCharacter = RealCharacter:Clone()
-local Part = Instance.new("Part", workspace)
-Part.Anchored = true
-Part.Size = Vector3.new(200, 1, 200)
-Part.CFrame = CFrame.new(0, -500, 0)
-Part.CanCollide = true
-
-FakeCharacter.Parent = workspace
-FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
-
-for _, v in pairs(RealCharacter:GetChildren()) do
-	if v:IsA("LocalScript") then
-		local clone = v:Clone()
-		clone.Disabled = true
-		clone.Parent = FakeCharacter
-	end
+local function NotifyInvisible(state)
+    WertUi:Notify({
+        Title = "Status",
+        Description = state and "Enabled" or "Disabled",
+        Duration = 2.5,
+        Corner = 14,
+        Transparent = 0.1,
+        Icon = state and "rbxassetid://93898873302694" or "rbxassetid://110786993356448",
+    })
 end
 
-if Transparency then
-	for _, v in pairs(FakeCharacter:GetDescendants()) do
-		if v:IsA("BasePart") then
-			v.Transparency = 0.9
-		end
-	end
+local function CacheParts()
+    Parts = {}
+    if not Character then return end
+    for _, v in ipairs(Character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            Parts[#Parts + 1] = v
+        end
+    end
 end
 
-local PseudoAnchor = FakeCharacter:WaitForChild("HumanoidRootPart")
+local function SetTransparency(value)
+    for _, part in ipairs(Parts) do
+        if part and part.Parent then
+            part.Transparency = value
+        end
+    end
+end
 
-RunService.RenderStepped:Connect(function()
-	if PseudoAnchor then
-		PseudoAnchor.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
-	end
+local function SetupCharacter(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    RootPart = char:WaitForChild("HumanoidRootPart")
+
+    CacheParts()
+
+    if not InvisibleEnabled then
+        SetTransparency(0)
+        Humanoid.CameraOffset = Vector3.zero
+    end
+end
+
+SetupCharacter(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+LocalPlayer.CharacterAdded:Connect(SetupCharacter)
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Invisible"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.Parent = PlayerGui
+
+local Button = Instance.new("ImageButton")
+Button.Parent = ScreenGui
+Button.Size = UDim2.new(0, 138, 0, 40)
+Button.Position = UDim2.new(0, 230, 0, 30)
+Button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Button.BorderSizePixel = 0
+Button.Image = "rbxassetid://110623745821407"
+Button.Active = true
+Button.Draggable = true
+
+Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 10)
+
+local UIStroke = Instance.new("UIStroke", Button)
+UIStroke.Thickness = 1.4
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+
+local UIGradient = Instance.new("UIGradient", UIStroke)
+UIGradient.Rotation = 77
+UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(241, 241, 241)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(21, 21, 21)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(241, 241, 241))
+})
+
+local Title = Instance.new("TextLabel", Button)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(0, 130, 0, 18)
+Title.Position = UDim2.new(0, 4, 0, 10)
+Title.Text = "Invisible"
+Title.TextScaled = true
+Title.TextColor3 = Color3.fromRGB(241, 241, 241)
+Title.FontFace = Font.new(
+    "rbxasset://fonts/families/SourceSansPro.json",
+    Enum.FontWeight.SemiBold
+)
+
+TweenService:Create(
+    UIGradient,
+    TweenInfo.new(4.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
+    { Rotation = 437 }
+):Play()
+
+Button.MouseButton1Click:Connect(function()
+    InvisibleEnabled = not InvisibleEnabled
+
+    if not InvisibleEnabled then
+        SetTransparency(0)
+        if Humanoid then
+            Humanoid.CameraOffset = Vector3.zero
+        end
+    end
+
+    NotifyInvisible(InvisibleEnabled)
 end)
 
-local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local Connections = {}
 
-local function AnimateToggle(isOn)
-	local colorTarget = isOn and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-	local posTarget = isOn and UDim2.new(0, 40, 0, 2) or UDim2.new(0, 2, 0, 2)
-	TweenService:Create(ToggleButton, tweenInfo, { BackgroundColor3 = colorTarget }):Play()
-	TweenService:Create(Track, tweenInfo, { Position = posTarget }):Play()
-end
+Connections[1] = RunService.Heartbeat:Connect(function()
+    if not InvisibleEnabled or not Character or not Humanoid or not RootPart then
+        return
+    end
 
-local function ToggleInvisible()
-	if not IsInvisible then
-		local stored = RealCharacter.HumanoidRootPart.CFrame
-		RealCharacter.HumanoidRootPart.CFrame = FakeCharacter.HumanoidRootPart.CFrame
-		for i = 1, 5 do
-			FakeCharacter.HumanoidRootPart.CFrame = stored
-		end
-		RealCharacter.Humanoid:UnequipTools()
-		player.Character = FakeCharacter
-		workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
-		PseudoAnchor = RealCharacter.HumanoidRootPart
-		for _, v in pairs(FakeCharacter:GetChildren()) do
-			if v:IsA("LocalScript") then
-				v.Disabled = false
-			end
-		end
-		IsInvisible = true
-	else
-		local stored = FakeCharacter.HumanoidRootPart.CFrame
-		FakeCharacter.HumanoidRootPart.CFrame = RealCharacter.HumanoidRootPart.CFrame
-		for i = 1, 5 do
-			RealCharacter.HumanoidRootPart.CFrame = stored
-		end
-		FakeCharacter.Humanoid:UnequipTools()
-		player.Character = RealCharacter
-		workspace.CurrentCamera.CameraSubject = RealCharacter.Humanoid
-		PseudoAnchor = FakeCharacter.HumanoidRootPart
-		for _, v in pairs(FakeCharacter:GetChildren()) do
-			if v:IsA("LocalScript") then
-				v.Disabled = true
-			end
-		end
-		IsInvisible = false
-	end
-	AnimateToggle(IsInvisible)
-end
+    local cf = RootPart.CFrame
 
-ToggleButton.MouseButton1Click:Connect(ToggleInvisible)
+    local newCF = cf * CFrame.new(0, -1000, 0)
+
+    RootPart.CFrame = newCF * CFrame.Angles(math.rad(0), 0, 0)
+
+    local camOffset = Humanoid.CameraOffset
+    local offset = newCF:ToObjectSpace(CFrame.new(cf.Position)).Position
+
+    Humanoid.CameraOffset = offset
+
+    RunService.RenderStepped:Wait()
+
+    RootPart.CFrame = cf
+    Humanoid.CameraOffset = camOffset
+
+    SetTransparency(0.4)
+end)
+
+_G.a = Connections
