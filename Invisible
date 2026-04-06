@@ -138,7 +138,7 @@ Connections[1] = RunService.Heartbeat:Connect(function()
 
     local cf = RootPart.CFrame
 
-    local newCF = cf * CFrame.new(0, -1000, 0)
+    local newCF = cf * CFrame.new(0, -10000, 0)
 
     RootPart.CFrame = newCF * CFrame.Angles(math.rad(0), 0, 0)
 
