@@ -5,42 +5,43 @@ if _G.a then
     _G.a = nil
 end
 
+if _G.InvisibleGui then
+    pcall(function()
+        _G.InvisibleEnabled = false
+        _G.InvisibleGui:Destroy()
+    end)
+end
+
 _G.WertUiAnimation = true
-local WertUi = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/idcgj36/WertNotify/refs/heads/main/Obfuscate.lua",
-    true
-))()
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
 local Character, Humanoid, RootPart
 local InvisibleEnabled = false
-local Parts = {}
+_G.InvisibleEnabled = false
 
-local function NotifyInvisible(state)
-    WertUi:Notify({
-        Title = "Status",
-        Description = state and "Enabled" or "Disabled",
-        Duration = 2.5,
-        Corner = 14,
-        Transparent = 0.1,
-        Icon = state and "rbxassetid://93898873302694" or "rbxassetid://110786993356448",
-    })
-end
+local Parts = {}
+local OriginalTransparency = {}
+
+local LastCF = nil
 
 local function CacheParts()
     Parts = {}
-    if not Character then return end
-    for _, v in ipairs(Character:GetDescendants()) do
-        if v:IsA("BasePart") then
-            Parts[#Parts + 1] = v
-        end
+    OriginalTransparency = {}
+
+    if not Character then return end        
+
+    for _, v in ipairs(Character:GetDescendants()) do        
+        if v:IsA("BasePart") then        
+            Parts[#Parts + 1] = v        
+            OriginalTransparency[v] = v.Transparency        
+        end        
     end
 end
 
@@ -52,16 +53,24 @@ local function SetTransparency(value)
     end
 end
 
+local function ResetTransparency()
+    for part, trans in pairs(OriginalTransparency) do
+        if part and part.Parent then
+            part.Transparency = trans
+        end
+    end
+end
+
 local function SetupCharacter(char)
     Character = char
     Humanoid = char:WaitForChild("Humanoid")
     RootPart = char:WaitForChild("HumanoidRootPart")
 
-    CacheParts()
+    CacheParts()        
 
-    if not InvisibleEnabled then
-        SetTransparency(0)
-        Humanoid.CameraOffset = Vector3.zero
+    if not InvisibleEnabled then        
+        ResetTransparency()        
+        Humanoid.CameraOffset = Vector3.zero        
     end
 end
 
@@ -71,62 +80,77 @@ LocalPlayer.CharacterAdded:Connect(SetupCharacter)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "Invisible"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999
-ScreenGui.Parent = PlayerGui
+ScreenGui.DisplayOrder = 10
+ScreenGui.Parent = CoreGui
+_G.InvisibleGui = ScreenGui
 
-local Button = Instance.new("ImageButton")
-Button.Parent = ScreenGui
-Button.Size = UDim2.new(0, 138, 0, 40)
-Button.Position = UDim2.new(0, 230, 0, 30)
-Button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Button.BorderSizePixel = 0
-Button.Image = "rbxassetid://110623745821407"
-Button.Active = true
-Button.Draggable = true
+local InvisibleBtn = Instance.new("TextButton")
+InvisibleBtn.Parent = ScreenGui
+InvisibleBtn.BorderSizePixel = 0
+InvisibleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+InvisibleBtn.AnchorPoint = Vector2.new(0.5, 0)
+InvisibleBtn.BackgroundTransparency = 0.1
+InvisibleBtn.Size = UDim2.new(0, 120, 0, 43)
+InvisibleBtn.Text = ""
+InvisibleBtn.Name = "InvisibleBtn"
+InvisibleBtn.Position = UDim2.new(0.5, 0, 0, 14)
+InvisibleBtn.Active = true
+InvisibleBtn.Draggable = true
 
-Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 10)
+local UICorner = Instance.new("UICorner")
+UICorner.Parent = InvisibleBtn
+UICorner.CornerRadius = UDim.new(0, 15)
 
-local UIStroke = Instance.new("UIStroke", Button)
-UIStroke.Thickness = 1.4
-UIStroke.Color = Color3.fromRGB(255, 255, 255)
+local Check = Instance.new("ImageLabel")
+Check.Parent = InvisibleBtn
+Check.BorderSizePixel = 0
+Check.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Check.AnchorPoint = Vector2.new(1, 0.5)
+Check.Image = "rbxassetid://125390573804889"
+Check.Size = UDim2.new(0, 51, 0, 51)
+Check.BackgroundTransparency = 1
+Check.Name = "Check"
+Check.Position = UDim2.new(1, 1, 0.5, 0)
+Check.ImageTransparency = 1
 
-local UIGradient = Instance.new("UIGradient", UIStroke)
-UIGradient.Rotation = 77
-UIGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(241, 241, 241)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(21, 21, 21)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(241, 241, 241))
-})
-
-local Title = Instance.new("TextLabel", Button)
-Title.BackgroundTransparency = 1
-Title.Size = UDim2.new(0, 130, 0, 18)
-Title.Position = UDim2.new(0, 4, 0, 10)
-Title.Text = "Invisible"
+local Title = Instance.new("TextLabel")
+Title.Parent = InvisibleBtn
+Title.TextWrapped = true
+Title.BorderSizePixel = 0
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.TextScaled = true
-Title.TextColor3 = Color3.fromRGB(241, 241, 241)
-Title.FontFace = Font.new(
-    "rbxasset://fonts/families/SourceSansPro.json",
-    Enum.FontWeight.SemiBold
-)
+Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(236, 236, 236)
+Title.BackgroundTransparency = 1
+Title.AnchorPoint = Vector2.new(0, 0.5)
+Title.Size = UDim2.new(0, 92, 0, 18)
+Title.Text = "Invisible"
+Title.Name = "Title"
+Title.Position = UDim2.new(0, 13, 0.5, -1)
 
-TweenService:Create(
-    UIGradient,
-    TweenInfo.new(4.2, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-    { Rotation = 437 }
-):Play()
+local function UpdateCheck(state)
+    TweenService:Create(Check, TweenInfo.new(0.25), {
+        ImageTransparency = state and 0 or 1
+    }):Play()
+end
 
-Button.MouseButton1Click:Connect(function()
+InvisibleBtn.MouseButton1Click:Connect(function()
     InvisibleEnabled = not InvisibleEnabled
+    _G.InvisibleEnabled = InvisibleEnabled
 
-    if not InvisibleEnabled then
-        SetTransparency(0)
-        if Humanoid then
-            Humanoid.CameraOffset = Vector3.zero
+    if not InvisibleEnabled then        
+        if RootPart and LastCF then
+            RootPart.CFrame = LastCF
         end
-    end
 
-    NotifyInvisible(InvisibleEnabled)
+        ResetTransparency()        
+        if Humanoid then        
+            Humanoid.CameraOffset = Vector3.zero        
+        end        
+    end        
+
+    UpdateCheck(InvisibleEnabled)
 end)
 
 local Connections = {}
@@ -136,23 +160,25 @@ Connections[1] = RunService.Heartbeat:Connect(function()
         return
     end
 
-    local cf = RootPart.CFrame
+    local cf = RootPart.CFrame        
+    LastCF = cf
 
     local newCF = cf * CFrame.new(0, -10000, 0)
+    RootPart.CFrame = newCF * CFrame.Angles(math.rad(0.002), 0, 0)
 
-    RootPart.CFrame = newCF * CFrame.Angles(math.rad(0), 0, 0)
+    local camOffset = Humanoid.CameraOffset        
+    local offset = newCF:ToObjectSpace(CFrame.new(cf.Position)).Position        
 
-    local camOffset = Humanoid.CameraOffset
-    local offset = newCF:ToObjectSpace(CFrame.new(cf.Position)).Position
+    Humanoid.CameraOffset = offset        
 
-    Humanoid.CameraOffset = offset
+    RunService.RenderStepped:Wait()        
 
-    RunService.RenderStepped:Wait()
+    if not InvisibleEnabled then return end        
 
-    RootPart.CFrame = cf
-    Humanoid.CameraOffset = camOffset
+    RootPart.CFrame = cf        
+    Humanoid.CameraOffset = camOffset        
 
-    SetTransparency(0.4)
+    SetTransparency(0.76)
 end)
 
 _G.a = Connections
