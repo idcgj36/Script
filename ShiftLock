@@ -1,134 +1,1058 @@
-if not game:IsLoaded() then    
-    game.Loaded:Wait()    
-end    
-    
-pcall(function()    
-    game.CoreGui["ShiftLockGUI"]:Destroy()    
-end)    
-    
-local ShiftlockGui = Instance.new("ScreenGui")    
-ShiftlockGui.Name = "ShiftLockGUI"    
-ShiftlockGui.Parent = game.CoreGui    
-ShiftlockGui.ResetOnSpawn = false    
-    
-local Button = Instance.new("ImageButton")    
-Button.Parent = ShiftlockGui    
-Button.BackgroundTransparency = 1    
-Button.Size = UDim2.new(0, 70, 0, 70)    
-Button.Position = UDim2.new(0.9, 0, 0.5, 0)    
-Button.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"    
-Button.Active = true    
-Button.Draggable = true     
-    
-local Cursor = Instance.new("ImageLabel")    
-Cursor.Parent = ShiftlockGui    
-Cursor.BackgroundTransparency = 1    
-Cursor.Size = UDim2.new(0, 32, 0, 32)    
-Cursor.Position = UDim2.new(0.5, -16, 0.5, -45)    
-Cursor.Image = "rbxassetid://137321056643916"    
-Cursor.Visible = false    
-Cursor.ZIndex = 10    
-Cursor.ImageColor3 = Color3.fromRGB(255,255,255)
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
 
-local Players = game:GetService("Players")    
-local RunService = game:GetService("RunService")    
-local UserInputService = game:GetService("UserInputService")    
-    
-local player = Players.LocalPlayer    
-local character = player.Character or player.CharacterAdded:Wait()    
-local humanoid = character:WaitForChild("Humanoid")    
-local root = character:WaitForChild("HumanoidRootPart")    
-local camera = workspace.CurrentCamera    
-    
-local MAX_LENGTH = 1000    
-local ENABLED_OFFSET = CFrame.new(1.7, 0, 0)    
-local isEnabled = false    
-local connection    
-    
+pcall(function()
+    game.CoreGui["AdvShiftLock"]:Destroy()
+end)
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local FILE_NAME = "config.json"
+local defaultConfig = {
+    offsetX = 1.7,
+    offsetY = -0.3,
+    offsetZ = 0.0,
+    crosshairScale = 1.0,
+    crosshairImage = "rbxassetid://137321056643916",
+    disabledColor = {255, 255, 255},
+    enabledColor = {0, 150, 255}
+}
+
+local savedConfig = {}
+for k, v in pairs(defaultConfig) do savedConfig[k] = v end
+
+local function loadConfig()
+    if isfile and isfile(FILE_NAME) then
+        local success, content = pcall(readfile, FILE_NAME)
+        if success then
+            local success2, data = pcall(HttpService.JSONDecode, HttpService, content)
+            if success2 and type(data) == "table" then
+                for k, v in pairs(data) do
+                    savedConfig[k] = v
+                end
+            end
+        end
+    end
+end
+
+local function saveConfig()
+    if writefile then
+        pcall(writefile, FILE_NAME, HttpService:JSONEncode(savedConfig))
+    end
+end
+
+loadConfig()
+
+local AdvShiftLock = Instance.new("ScreenGui")
+AdvShiftLock.Parent = game.CoreGui
+AdvShiftLock.IgnoreGuiInset = true
+AdvShiftLock.DisplayOrder = 1000000
+AdvShiftLock.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+AdvShiftLock.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+AdvShiftLock.Name = "AdvShiftLock"
+
+local ShiftLockBtn = Instance.new("ImageButton")
+ShiftLockBtn.Parent = AdvShiftLock
+ShiftLockBtn.BorderSizePixel = 0
+ShiftLockBtn.ImageTransparency = 0.25
+ShiftLockBtn.BackgroundTransparency = 1
+ShiftLockBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ShiftLockBtn.AnchorPoint = Vector2.new(1, 0.5)
+ShiftLockBtn.Image = "rbxassetid://5825490604"
+ShiftLockBtn.Size = UDim2.new(0, 64, 0, 64)
+ShiftLockBtn.Name = "ShiftLockBtn"
+ShiftLockBtn.Active = true
+ShiftLockBtn.Draggable = true
+ShiftLockBtn.Position = UDim2.new(1, -18, 0.5, 0)
+
+local ShiftLockBtnCorner = Instance.new("UICorner")
+ShiftLockBtnCorner.Parent = ShiftLockBtn
+ShiftLockBtnCorner.CornerRadius = UDim.new(1, 0)
+
+local SettingsBtn = Instance.new("TextButton")
+SettingsBtn.Parent = ShiftLockBtn
+SettingsBtn.BorderSizePixel = 0
+SettingsBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SettingsBtn.BackgroundTransparency = 0.35
+SettingsBtn.Size = UDim2.new(0, 24, 0, 24)
+SettingsBtn.Text = ""
+SettingsBtn.Name = "SettingsBtn"
+SettingsBtn.Position = UDim2.new(0, -6, 0, -6)
+
+local SettingsIcon = Instance.new("ImageLabel")
+SettingsIcon.Parent = SettingsBtn
+SettingsIcon.BorderSizePixel = 0
+SettingsIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SettingsIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+SettingsIcon.Image = "rbxassetid://140704441124047"
+SettingsIcon.Size = UDim2.new(0, 15, 0, 15)
+SettingsIcon.BackgroundTransparency = 1
+SettingsIcon.Name = "SettingsIcon"
+SettingsIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+local SettingsBtnCorner = Instance.new("UICorner")
+SettingsBtnCorner.Parent = SettingsBtn
+SettingsBtnCorner.CornerRadius = UDim.new(1, 0)
+
+local LockIcon = Instance.new("ImageLabel")
+LockIcon.Parent = ShiftLockBtn
+LockIcon.BorderSizePixel = 0
+LockIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+LockIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+LockIcon.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"
+LockIcon.Size = UDim2.new(0, 40, 0, 40)
+LockIcon.BackgroundTransparency = 1
+LockIcon.Name = "LockIcon"
+LockIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+local SettingsFrame = Instance.new("Frame")
+SettingsFrame.Parent = AdvShiftLock
+SettingsFrame.Visible = false
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(11, 11, 11)
+SettingsFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+SettingsFrame.Size = UDim2.new(0.47, 0, 0.49, 0)
+SettingsFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.BackgroundTransparency = 0.45
+
+local SettingsFrameCorner = Instance.new("UICorner")
+SettingsFrameCorner.Parent = SettingsFrame
+SettingsFrameCorner.CornerRadius = UDim.new(0, 25)
+
+local SettingsScrolls = Instance.new("ScrollingFrame")
+SettingsScrolls.Parent = SettingsFrame
+SettingsScrolls.BorderSizePixel = 0
+SettingsScrolls.CanvasSize = UDim2.new(0, 0, 1.1, 0)
+SettingsScrolls.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+SettingsScrolls.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SettingsScrolls.Name = "SettingsScrolls"
+SettingsScrolls.AnchorPoint = Vector2.new(0.5, 0.5)
+SettingsScrolls.Size = UDim2.new(0.97, 0, 0.94, 0)
+SettingsScrolls.Position = UDim2.new(0.5, 0, 0.5, 0)
+SettingsScrolls.ScrollBarThickness = 0
+SettingsScrolls.BackgroundTransparency = 1
+
+local OffsetHolder = Instance.new("Frame")
+OffsetHolder.Parent = SettingsScrolls
+OffsetHolder.BorderSizePixel = 0
+OffsetHolder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+OffsetHolder.Size = UDim2.new(0, 190, 0, 154)
+OffsetHolder.Position = UDim2.new(0, 6, 0, 5)
+OffsetHolder.Name = "OffsetHolder"
+OffsetHolder.BackgroundTransparency = 1
+
+local OffsetZ = Instance.new("Frame")
+OffsetZ.Parent = OffsetHolder
+OffsetZ.BorderSizePixel = 0
+OffsetZ.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+OffsetZ.AnchorPoint = Vector2.new(0.5, 0)
+OffsetZ.Size = UDim2.new(0, 183, 0, 27)
+OffsetZ.Position = UDim2.new(0.5, 0, 0, 97)
+OffsetZ.Name = "OffsetZ"
+OffsetZ.BackgroundTransparency = 1
+
+local ReduceBtn = Instance.new("ImageButton")
+ReduceBtn.Parent = OffsetZ
+ReduceBtn.BorderSizePixel = 0
+ReduceBtn.BackgroundTransparency = 0.7
+ReduceBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ReduceBtn.AnchorPoint = Vector2.new(0, 0.5)
+ReduceBtn.Image = "rbxassetid://118026365011536"
+ReduceBtn.Size = UDim2.new(0, 22, 0, 22)
+ReduceBtn.Name = "ReduceBtn"
+ReduceBtn.Position = UDim2.new(0, 32, 0.5, 0)
+
+local ReduceBtnCorner = Instance.new("UICorner")
+ReduceBtnCorner.Parent = ReduceBtn
+ReduceBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local ZLabel = Instance.new("TextLabel")
+ZLabel.Parent = OffsetZ
+ZLabel.TextWrapped = true
+ZLabel.BorderSizePixel = 0
+ZLabel.TextSize = 1
+ZLabel.TextScaled = true
+ZLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ZLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+ZLabel.TextColor3 = Color3.fromRGB(241, 241, 241)
+ZLabel.BackgroundTransparency = 1
+ZLabel.AnchorPoint = Vector2.new(0, 0.5)
+ZLabel.Size = UDim2.new(0, 23, 0, 22)
+ZLabel.Text = "Z"
+ZLabel.Name = "ZLabel"
+ZLabel.Position = UDim2.new(0, 4, 0.5, 0)
+
+local OffsetX = Instance.new("Frame")
+OffsetX.Name = "OffsetX"
+OffsetX.Parent = OffsetHolder
+OffsetX.BorderSizePixel = 0
+OffsetX.BackgroundTransparency = 1
+OffsetX.AnchorPoint = Vector2.new(0.5, 0)
+OffsetX.Size = UDim2.new(0, 183, 0, 27)
+OffsetX.Position = UDim2.new(0.5, 0, 0, 29)
+
+local XLabel = Instance.new("TextLabel")
+XLabel.Parent = OffsetX
+XLabel.TextWrapped = true
+XLabel.BorderSizePixel = 0
+XLabel.TextSize = 1
+XLabel.TextScaled = true
+XLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+XLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+XLabel.TextColor3 = Color3.fromRGB(241, 241, 241)
+XLabel.BackgroundTransparency = 1
+XLabel.AnchorPoint = Vector2.new(0, 0.5)
+XLabel.Size = UDim2.new(0, 23, 0, 22)
+XLabel.Text = "X"
+XLabel.Name = "XLabel"
+XLabel.Position = UDim2.new(0, 4, 0.5, 0)
+
+local OffsetXIncreaseBtn = Instance.new("ImageButton")
+OffsetXIncreaseBtn.Parent = OffsetX
+OffsetXIncreaseBtn.BorderSizePixel = 0
+OffsetXIncreaseBtn.BackgroundTransparency = 0.7
+OffsetXIncreaseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OffsetXIncreaseBtn.AnchorPoint = Vector2.new(1, 0.5)
+OffsetXIncreaseBtn.Image = "rbxassetid://111774323017047"
+OffsetXIncreaseBtn.Size = UDim2.new(0, 22, 0, 22)
+OffsetXIncreaseBtn.Name = "IncreaseBtn"
+OffsetXIncreaseBtn.Position = UDim2.new(1, -5, 0.5, 0)
+
+local OffsetXIncreaseBtnCorner = Instance.new("UICorner")
+OffsetXIncreaseBtnCorner.Parent = OffsetXIncreaseBtn
+OffsetXIncreaseBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local OffsetXValue = Instance.new("TextLabel")
+OffsetXValue.Parent = OffsetX
+OffsetXValue.TextWrapped = true
+OffsetXValue.BorderSizePixel = 0
+OffsetXValue.TextScaled = true
+OffsetXValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+OffsetXValue.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+OffsetXValue.TextColor3 = Color3.fromRGB(231, 231, 231)
+OffsetXValue.BackgroundTransparency = 1
+OffsetXValue.AnchorPoint = Vector2.new(1, 0.5)
+OffsetXValue.Size = UDim2.new(0, 91, 0, 20)
+OffsetXValue.Text = "0"
+OffsetXValue.Name = "Value"
+OffsetXValue.Position = UDim2.new(1, -32, 0.5, 0)
+
+local OffsetXReduceBtn = Instance.new("ImageButton")
+OffsetXReduceBtn.Parent = OffsetX
+OffsetXReduceBtn.BorderSizePixel = 0
+OffsetXReduceBtn.BackgroundTransparency = 0.7
+OffsetXReduceBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OffsetXReduceBtn.AnchorPoint = Vector2.new(0, 0.5)
+OffsetXReduceBtn.Image = "rbxassetid://118026365011536"
+OffsetXReduceBtn.Size = UDim2.new(0, 22, 0, 22)
+OffsetXReduceBtn.Name = "ReduceBtn"
+OffsetXReduceBtn.Position = UDim2.new(0, 32, 0.5, 0)
+
+local OffsetXReduceBtnCorner = Instance.new("UICorner")
+OffsetXReduceBtnCorner.Parent = OffsetXReduceBtn
+OffsetXReduceBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local UIOffsetY = Instance.new("Frame")
+UIOffsetY.Parent = OffsetHolder
+UIOffsetY.BorderSizePixel = 0
+UIOffsetY.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+UIOffsetY.AnchorPoint = Vector2.new(0.5, 0)
+UIOffsetY.Size = UDim2.new(0, 183, 0, 27)
+UIOffsetY.Position = UDim2.new(0.5, 0, 0, 63)
+UIOffsetY.Name = "OffsetY"
+UIOffsetY.BackgroundTransparency = 1
+
+local OffsetYReduceBtn = Instance.new("ImageButton")
+OffsetYReduceBtn.Parent = UIOffsetY
+OffsetYReduceBtn.BorderSizePixel = 0
+OffsetYReduceBtn.BackgroundTransparency = 0.7
+OffsetYReduceBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OffsetYReduceBtn.AnchorPoint = Vector2.new(0, 0.5)
+OffsetYReduceBtn.Image = "rbxassetid://118026365011536"
+OffsetYReduceBtn.Size = UDim2.new(0, 22, 0, 22)
+OffsetYReduceBtn.Name = "ReduceBtn"
+OffsetYReduceBtn.Position = UDim2.new(0, 32, 0.5, 0)
+
+local OffsetYReduceBtnCorner = Instance.new("UICorner")
+OffsetYReduceBtnCorner.Parent = OffsetYReduceBtn
+OffsetYReduceBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local OffsetYIncreaseBtn = Instance.new("ImageButton")
+OffsetYIncreaseBtn.Parent = UIOffsetY
+OffsetYIncreaseBtn.BorderSizePixel = 0
+OffsetYIncreaseBtn.BackgroundTransparency = 0.7
+OffsetYIncreaseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OffsetYIncreaseBtn.AnchorPoint = Vector2.new(1, 0.5)
+OffsetYIncreaseBtn.Image = "rbxassetid://111774323017047"
+OffsetYIncreaseBtn.Size = UDim2.new(0, 22, 0, 22)
+OffsetYIncreaseBtn.Name = "IncreaseBtn"
+OffsetYIncreaseBtn.Position = UDim2.new(1, -5, 0.5, 0)
+
+local OffsetYIncreaseBtnCorner = Instance.new("UICorner")
+OffsetYIncreaseBtnCorner.Parent = OffsetYIncreaseBtn
+OffsetYIncreaseBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local OffsetYValue = Instance.new("TextLabel")
+OffsetYValue.Parent = UIOffsetY
+OffsetYValue.TextWrapped = true
+OffsetYValue.BorderSizePixel = 0
+OffsetYValue.TextScaled = true
+OffsetYValue.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+OffsetYValue.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+OffsetYValue.TextColor3 = Color3.fromRGB(231, 231, 231)
+OffsetYValue.BackgroundTransparency = 1
+OffsetYValue.AnchorPoint = Vector2.new(1, 0.5)
+OffsetYValue.Size = UDim2.new(0, 91, 0, 20)
+OffsetYValue.Text = "0"
+OffsetYValue.Name = "Value"
+OffsetYValue.Position = UDim2.new(1, -32, 0.5, 0)
+
+local YLabel = Instance.new("TextLabel")
+YLabel.Parent = UIOffsetY
+YLabel.TextWrapped = true
+YLabel.BorderSizePixel = 0
+YLabel.TextSize = 1
+YLabel.TextScaled = true
+YLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+YLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+YLabel.TextColor3 = Color3.fromRGB(241, 241, 241)
+YLabel.BackgroundTransparency = 1
+YLabel.AnchorPoint = Vector2.new(0, 0.5)
+YLabel.Size = UDim2.new(0, 23, 0, 22)
+YLabel.Text = "Y"
+YLabel.Name = "YLabel"
+YLabel.Position = UDim2.new(0, 4, 0.5, 0)
+
+local CrossHairScale = Instance.new("Frame")
+CrossHairScale.Parent = SettingsScrolls
+CrossHairScale.BorderSizePixel = 0
+CrossHairScale.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CrossHairScale.AnchorPoint = Vector2.new(0.5, 0)
+CrossHairScale.Size = UDim2.new(0, 388, 0, 33)
+CrossHairScale.Position = UDim2.new(0.5, 0, 0, 177)
+CrossHairScale.Name = "CrossHairScale"
+CrossHairScale.BackgroundTransparency = 1
+
+local ScaleSliderBar = Instance.new("Frame")
+ScaleSliderBar.Parent = CrossHairScale
+ScaleSliderBar.BorderSizePixel = 0
+ScaleSliderBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ScaleSliderBar.AnchorPoint = Vector2.new(1, 0.5)
+ScaleSliderBar.Size = UDim2.new(0, 272, 0, 4)
+ScaleSliderBar.Position = UDim2.new(1, -10, 0.5, 0)
+ScaleSliderBar.Name = "ScaleSliderBar"
+ScaleSliderBar.BackgroundTransparency = 0.7
+
+local ScaleSliderBarCorner = Instance.new("UICorner")
+ScaleSliderBarCorner.Parent = ScaleSliderBar
+ScaleSliderBarCorner.CornerRadius = UDim.new(1, 0)
+
+local Fill = Instance.new("TextButton")
+Fill.Parent = ScaleSliderBar
+Fill.BorderSizePixel = 0
+Fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Fill.AnchorPoint = Vector2.new(0, 0.5)
+Fill.Size = UDim2.new(0, 92, 0, 4)
+Fill.Text = ""
+Fill.Name = "Fill"
+Fill.Position = UDim2.new(0, 0, 0.5, 0)
+
+local FillCorner = Instance.new("UICorner")
+FillCorner.Parent = Fill
+FillCorner.CornerRadius = UDim.new(1, 0)
+
+local Handle = Instance.new("TextButton")
+Handle.Parent = Fill
+Handle.BorderSizePixel = 0
+Handle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Handle.AnchorPoint = Vector2.new(1, 0.5)
+Handle.Size = UDim2.new(0, 9, 0, 13)
+Handle.Text = ""
+Handle.Name = "Handle"
+Handle.Position = UDim2.new(1, 4, 0.5, 0)
+
+local HandleCorner = Instance.new("UICorner")
+HandleCorner.Parent = Handle
+
+local CrossHairScaleTitle = Instance.new("TextLabel")
+CrossHairScaleTitle.Parent = CrossHairScale
+CrossHairScaleTitle.TextWrapped = true
+CrossHairScaleTitle.BorderSizePixel = 0
+CrossHairScaleTitle.TextSize = 16
+CrossHairScaleTitle.TextXAlignment = Enum.TextXAlignment.Left
+CrossHairScaleTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+CrossHairScaleTitle.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+CrossHairScaleTitle.TextColor3 = Color3.fromRGB(236, 236, 236)
+CrossHairScaleTitle.BackgroundTransparency = 1
+CrossHairScaleTitle.AnchorPoint = Vector2.new(0, 0.5)
+CrossHairScaleTitle.Size = UDim2.new(0, 91, 0, 24)
+CrossHairScaleTitle.Text = "Crosshair Scale"
+CrossHairScaleTitle.Name = "Title"
+CrossHairScaleTitle.Position = UDim2.new(0, 9, 0.5, -1)
+
+local Divider2 = Instance.new("Frame")
+Divider2.Parent = SettingsScrolls
+Divider2.BorderSizePixel = 0
+Divider2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Divider2.AnchorPoint = Vector2.new(0.5, 0)
+Divider2.Size = UDim2.new(0, 368, 0, 3)
+Divider2.Position = UDim2.new(0.5, 0, 0, 166)
+Divider2.Name = "Divider2"
+Divider2.BackgroundTransparency = 0.7
+
+local Divider2Corner = Instance.new("UICorner")
+Divider2Corner.Parent = Divider2
+Divider2Corner.CornerRadius = UDim.new(1, 0)
+
+local Divider1 = Instance.new("Frame")
+Divider1.Parent = SettingsScrolls
+Divider1.BorderSizePixel = 0
+Divider1.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Divider1.AnchorPoint = Vector2.new(0.5, 0)
+Divider1.Size = UDim2.new(0, 3, 0, 154)
+Divider1.Position = UDim2.new(0.5, 2, 0, 5)
+Divider1.Name = "Divider1"
+Divider1.BackgroundTransparency = 0.7
+
+local Divider1Corner = Instance.new("UICorner")
+Divider1Corner.Parent = Divider1
+Divider1Corner.CornerRadius = UDim.new(1, 0)
+
+local SLCrossHair = Instance.new("Frame")
+SLCrossHair.Parent = SettingsScrolls
+SLCrossHair.BorderSizePixel = 0
+SLCrossHair.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLCrossHair.AnchorPoint = Vector2.new(1, 0)
+SLCrossHair.Size = UDim2.new(0, 190, 0, 154)
+SLCrossHair.Position = UDim2.new(1, -1, 0, 5)
+SLCrossHair.Name = "SLCrossHair"
+SLCrossHair.BackgroundTransparency = 1
+
+local SLCrossHairTitle = Instance.new("TextLabel")
+SLCrossHairTitle.Parent = SLCrossHair
+SLCrossHairTitle.TextWrapped = true
+SLCrossHairTitle.BorderSizePixel = 0
+SLCrossHairTitle.TextSize = 15
+SLCrossHairTitle.TextXAlignment = Enum.TextXAlignment.Left
+SLCrossHairTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLCrossHairTitle.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+SLCrossHairTitle.TextColor3 = Color3.fromRGB(236, 236, 236)
+SLCrossHairTitle.BackgroundTransparency = 1
+SLCrossHairTitle.AnchorPoint = Vector2.new(0.5, 0)
+SLCrossHairTitle.Size = UDim2.new(0, 115, 0, 24)
+SLCrossHairTitle.Text = "Shift lock & Crosshair"
+SLCrossHairTitle.Name = "Title"
+SLCrossHairTitle.Position = UDim2.new(0.5, 0, 0, 2)
+
+local CrosshairImageBox = Instance.new("TextBox")
+CrosshairImageBox.Parent = SLCrossHair
+CrosshairImageBox.Name = "CrosshairImageBox"
+CrosshairImageBox.PlaceholderColor3 = Color3.fromRGB(136, 136, 136)
+CrosshairImageBox.BorderSizePixel = 0
+CrosshairImageBox.TextWrapped = true
+CrosshairImageBox.TextSize = 13
+CrosshairImageBox.TextColor3 = Color3.fromRGB(236, 236, 236)
+CrosshairImageBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+CrosshairImageBox.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+CrosshairImageBox.AnchorPoint = Vector2.new(0.5, 1)
+CrosshairImageBox.PlaceholderText = "Enter Crosshair image ID"
+CrosshairImageBox.Size = UDim2.new(0, 169, 0, 23)
+CrosshairImageBox.Position = UDim2.new(0.5, 0, 1, -100)
+CrosshairImageBox.Text = savedConfig.crosshairImage
+CrosshairImageBox.BackgroundTransparency = 0.7
+
+local CrosshairImageBoxCorner = Instance.new("UICorner")
+CrosshairImageBoxCorner.Parent = CrosshairImageBox
+CrosshairImageBoxCorner.CornerRadius = UDim.new(0, 9)
+
+local SLEnabledColor = Instance.new("Frame")
+SLEnabledColor.Parent = SLCrossHair
+SLEnabledColor.BorderSizePixel = 0
+SLEnabledColor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLEnabledColor.AnchorPoint = Vector2.new(0.5, 0)
+SLEnabledColor.Size = UDim2.new(0, 174, 0, 26)
+SLEnabledColor.Position = UDim2.new(0.5, 0, 0, 64)
+SLEnabledColor.Name = "SLEnabledColor"
+SLEnabledColor.BackgroundTransparency = 1
+
+local SLEnabledColorTitle = Instance.new("TextLabel")
+SLEnabledColorTitle.Parent = SLEnabledColor
+SLEnabledColorTitle.TextWrapped = true
+SLEnabledColorTitle.BorderSizePixel = 0
+SLEnabledColorTitle.TextSize = 14
+SLEnabledColorTitle.TextXAlignment = Enum.TextXAlignment.Left
+SLEnabledColorTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLEnabledColorTitle.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+SLEnabledColorTitle.TextColor3 = Color3.fromRGB(236, 236, 236)
+SLEnabledColorTitle.BackgroundTransparency = 1
+SLEnabledColorTitle.AnchorPoint = Vector2.new(0, 0.5)
+SLEnabledColorTitle.Size = UDim2.new(0, 89, 0, 24)
+SLEnabledColorTitle.Text = "SL Enabled Color"
+SLEnabledColorTitle.Name = "Title"
+SLEnabledColorTitle.Position = UDim2.new(0, 2, 0.5, 0)
+
+local ColorPreviewBtn = Instance.new("TextButton")
+ColorPreviewBtn.Parent = SLEnabledColor
+ColorPreviewBtn.Name = "ColorPreviewBtn"
+ColorPreviewBtn.BorderSizePixel = 0
+ColorPreviewBtn.Text = ""
+ColorPreviewBtn.BackgroundColor3 = Color3.fromRGB(savedConfig.enabledColor[1], savedConfig.enabledColor[2], savedConfig.enabledColor[3])
+ColorPreviewBtn.AnchorPoint = Vector2.new(1, 0.5)
+ColorPreviewBtn.Size = UDim2.new(0, 78, 0, 24)
+ColorPreviewBtn.Position = UDim2.new(1, 0, 0.5, 0)
+
+local ColorPreviewBtnCorner = Instance.new("UICorner")
+ColorPreviewBtnCorner.Parent = ColorPreviewBtn
+ColorPreviewBtnCorner.CornerRadius = UDim.new(0, 9)
+
+local ColorPickerList = Instance.new("Frame")
+ColorPickerList.Parent = AdvShiftLock
+ColorPickerList.Visible = false
+ColorPickerList.BorderSizePixel = 0
+ColorPickerList.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ColorPickerList.AnchorPoint = Vector2.new(0.5, 0.5)
+ColorPickerList.Size = UDim2.new(0, 175, 0, 180)
+ColorPickerList.Position = UDim2.new(0.5, 0, 0.5, 0)
+ColorPickerList.ZIndex = 20
+ColorPickerList.Name = "ColorPickerList"
+
+local ColorPickerListCorner = Instance.new("UICorner")
+ColorPickerListCorner.Parent = ColorPickerList
+ColorPickerListCorner.CornerRadius = UDim.new(0, 12)
+
+local ColorPickerStroke = Instance.new("UIStroke")
+ColorPickerStroke.Parent = ColorPickerList
+ColorPickerStroke.Thickness = 1.5
+ColorPickerStroke.Color = Color3.fromRGB(60, 60, 60)
+
+local ColorPickerScroll = Instance.new("ScrollingFrame")
+ColorPickerScroll.Parent = ColorPickerList
+ColorPickerScroll.BorderSizePixel = 0
+ColorPickerScroll.BackgroundTransparency = 1
+ColorPickerScroll.Size = UDim2.new(1, -10, 1, -10)
+ColorPickerScroll.Position = UDim2.new(0, 5, 0, 5)
+ColorPickerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+ColorPickerScroll.ScrollBarThickness = 4
+ColorPickerScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+
+local ColorPickerLayout = Instance.new("UIListLayout")
+ColorPickerLayout.Parent = ColorPickerScroll
+ColorPickerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ColorPickerLayout.Padding = UDim.new(0, 5)
+
+local presetColors = {
+    {Name = "Cyan Blue", Color = Color3.fromRGB(0, 150, 255)},
+    {Name = "Neon Green", Color = Color3.fromRGB(0, 255, 100)},
+    {Name = "Hot Pink", Color = Color3.fromRGB(255, 50, 150)},
+    {Name = "Bright Yellow", Color = Color3.fromRGB(255, 220, 0)},
+    {Name = "Vivid Purple", Color = Color3.fromRGB(160, 50, 255)},
+    {Name = "Orange Flame", Color = Color3.fromRGB(255, 100, 0)},
+    {Name = "Crimson Red", Color = Color3.fromRGB(255, 30, 30)},
+    {Name = "Pure White", Color = Color3.fromRGB(255, 255, 255)},
+    {Name = "Electric Violet", Color = Color3.fromRGB(143, 0, 255)},
+    {Name = "Deep Aqua", Color = Color3.fromRGB(0, 206, 209)},
+    {Name = "Gold Sun", Color = Color3.fromRGB(255, 215, 0)},
+    {Name = "Lime Twist", Color = Color3.fromRGB(191, 255, 0)},
+    {Name = "Magical Rose", Color = Color3.fromRGB(255, 0, 127)},
+    {Name = "Sky Blue", Color = Color3.fromRGB(135, 206, 235)},
+    {Name = "Midnight Grey", Color = Color3.fromRGB(45, 45, 45)},
+    {Name = "Ocean Blue", Color = Color3.fromRGB(0, 105, 255)},
+    {Name = "Royal Blue", Color = Color3.fromRGB(65, 105, 225)},
+    {Name = "Ice Blue", Color = Color3.fromRGB(120, 220, 255)},
+    {Name = "Mint Green", Color = Color3.fromRGB(62, 255, 180)},
+    {Name = "Emerald Green", Color = Color3.fromRGB(0, 201, 87)},
+    {Name = "Toxic Green", Color = Color3.fromRGB(170, 255, 0)},
+    {Name = "Ruby Red", Color = Color3.fromRGB(224, 17, 95)},
+    {Name = "Dark Crimson", Color = Color3.fromRGB(139, 0, 0)},
+    {Name = "Coral Orange", Color = Color3.fromRGB(255, 127, 80)},
+    {Name = "Sunset Orange", Color = Color3.fromRGB(255, 94, 77)},
+    {Name = "Amber Gold", Color = Color3.fromRGB(255, 191, 0)},
+    {Name = "Soft Lemon", Color = Color3.fromRGB(255, 244, 79)},
+    {Name = "Lavender", Color = Color3.fromRGB(200, 162, 255)},
+    {Name = "Deep Purple", Color = Color3.fromRGB(102, 0, 204)},
+    {Name = "Neon Violet", Color = Color3.fromRGB(204, 0, 255)},
+    {Name = "Rose Pink", Color = Color3.fromRGB(255, 102, 204)},
+    {Name = "Bubblegum Pink", Color = Color3.fromRGB(255, 105, 180)},
+    {Name = "Chocolate Brown", Color = Color3.fromRGB(101, 67, 33)},
+    {Name = "Coffee Brown", Color = Color3.fromRGB(111, 78, 55)},
+    {Name = "Silver", Color = Color3.fromRGB(192, 192, 192)},
+    {Name = "Dark Silver", Color = Color3.fromRGB(120, 120, 120)},
+    {Name = "Jet Black", Color = Color3.fromRGB(10, 10, 10)},
+    {Name = "Ivory", Color = Color3.fromRGB(255, 255, 240)},
+    {Name = "Peach", Color = Color3.fromRGB(255, 218, 185)},
+    {Name = "Aqua Marine", Color = Color3.fromRGB(127, 255, 212)},
+    {Name = "Cyber Cyan", Color = Color3.fromRGB(0, 255, 255)},
+    {Name = "Blood Red", Color = Color3.fromRGB(138, 3, 3)},
+    {Name = "Matrix Green", Color = Color3.fromRGB(0, 255, 65)}
+}
+
+local SLDisabledColor = Instance.new("Frame")
+SLDisabledColor.Parent = SLCrossHair
+SLDisabledColor.BorderSizePixel = 0
+SLDisabledColor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLDisabledColor.AnchorPoint = Vector2.new(0.5, 0)
+SLDisabledColor.Size = UDim2.new(0, 174, 0, 26)
+SLDisabledColor.Position = UDim2.new(0.5, 0, 0, 95)
+SLDisabledColor.Name = "SLDisabledColor"
+SLDisabledColor.BackgroundTransparency = 1
+
+local SLDisabledColorTitle = Instance.new("TextLabel")
+SLDisabledColorTitle.Parent = SLDisabledColor
+SLDisabledColorTitle.TextWrapped = true
+SLDisabledColorTitle.BorderSizePixel = 0
+SLDisabledColorTitle.TextSize = 14
+SLDisabledColorTitle.TextXAlignment = Enum.TextXAlignment.Left
+SLDisabledColorTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SLDisabledColorTitle.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+SLDisabledColorTitle.TextColor3 = Color3.fromRGB(236, 236, 236)
+SLDisabledColorTitle.BackgroundTransparency = 1
+SLDisabledColorTitle.AnchorPoint = Vector2.new(0, 0.5)
+SLDisabledColorTitle.Size = UDim2.new(0, 89, 0, 24)
+SLDisabledColorTitle.Text = "SL Disabled Color"
+SLDisabledColorTitle.Name = "Title"
+SLDisabledColorTitle.Position = UDim2.new(0, 2, 0.5, 0)
+
+local RedColor = Instance.new("TextButton")
+RedColor.Parent = SLDisabledColor
+RedColor.BorderSizePixel = 0
+RedColor.BackgroundColor3 = Color3.fromRGB(255, 56, 56)
+RedColor.AnchorPoint = Vector2.new(1, 0.5)
+RedColor.Size = UDim2.new(0, 30, 0, 24)
+RedColor.Text = ""
+RedColor.Name = "RedColor"
+RedColor.Position = UDim2.new(1, -4, 0.5, 0)
+
+local RedColorCorner = Instance.new("UICorner")
+RedColorCorner.Parent = RedColor
+
+local WhiteColor = Instance.new("TextButton")
+WhiteColor.Parent = SLDisabledColor
+WhiteColor.BorderSizePixel = 0
+WhiteColor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+WhiteColor.AnchorPoint = Vector2.new(1, 0.5)
+WhiteColor.Size = UDim2.new(0, 30, 0, 24)
+WhiteColor.Text = ""
+WhiteColor.Name = "WhiteColor"
+WhiteColor.Position = UDim2.new(1, -38, 0.5, 0)
+
+local WhiteColorCorner = Instance.new("UICorner")
+WhiteColorCorner.Parent = WhiteColor
+
+local SelectCheck = Instance.new("UIStroke")
+SelectCheck.Parent = (savedConfig.disabledColor[1] == 255 and savedConfig.disabledColor[2] == 56) and RedColor or WhiteColor
+SelectCheck.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+SelectCheck.Name = "SelectCheck"
+SelectCheck.Thickness = 1.5
+SelectCheck.Color = Color3.fromRGB(126, 126, 126)
+
+local OffsetHolderTitle = Instance.new("TextLabel")
+OffsetHolderTitle.Parent = OffsetHolder
+OffsetHolderTitle.TextWrapped = true
+OffsetHolderTitle.BorderSizePixel = 0
+OffsetHolderTitle.TextSize = 15
+OffsetHolderTitle.TextXAlignment = Enum.TextXAlignment.Center
+OffsetHolderTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+OffsetHolderTitle.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+OffsetHolderTitle.TextColor3 = Color3.fromRGB(236, 236, 236)
+OffsetHolderTitle.BackgroundTransparency = 1
+OffsetHolderTitle.AnchorPoint = Vector2.new(0.5, 0)
+OffsetHolderTitle.Size = UDim2.new(0, 115, 0, 24)
+OffsetHolderTitle.Text = "ShiftLock Offset"
+OffsetHolderTitle.Name = "Title"
+OffsetHolderTitle.Position = UDim2.new(0.5, 0, 0, 2)
+
+local StepBox = Instance.new("TextBox")
+StepBox.Parent = OffsetHolder
+StepBox.Name = "StepBox"
+StepBox.PlaceholderColor3 = Color3.fromRGB(136, 136, 136)
+StepBox.BorderSizePixel = 0
+StepBox.TextWrapped = true
+StepBox.TextSize = 13
+StepBox.TextColor3 = Color3.fromRGB(236, 236, 236)
+StepBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StepBox.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+StepBox.AnchorPoint = Vector2.new(0.5, 1)
+StepBox.PlaceholderText = "Step: 0.1"
+StepBox.Size = UDim2.new(0, 169, 0, 23)
+StepBox.Position = UDim2.new(0.5, 0, 1, -2)
+StepBox.Text = "0.1"
+StepBox.BackgroundTransparency = 0.7
+
+local StepBoxCorner = Instance.new("UICorner")
+StepBoxCorner.Parent = StepBox
+StepBoxCorner.CornerRadius = UDim.new(0, 9)
+
+local Crosshair = Instance.new("ImageLabel")
+Crosshair.Name = "Crosshair"
+Crosshair.Parent = AdvShiftLock
+Crosshair.BackgroundTransparency = 1
+Crosshair.AnchorPoint = Vector2.new(0.5, 0.5)
+Crosshair.Position = UDim2.new(0.5, 0, 0.5, 0)
+Crosshair.ZIndex = 10
+Crosshair.Visible = false
+Crosshair.Image = savedConfig.crosshairImage
+
+local OffsetZIncreaseBtn = Instance.new("ImageButton")
+OffsetZIncreaseBtn.Parent = OffsetZ
+OffsetZIncreaseBtn.BorderSizePixel = 0
+OffsetZIncreaseBtn.BackgroundTransparency = 0.7
+OffsetZIncreaseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+OffsetZIncreaseBtn.AnchorPoint = Vector2.new(1, 0.5)
+OffsetZIncreaseBtn.Image = "rbxassetid://111774323017047"
+OffsetZIncreaseBtn.Size = UDim2.new(0, 22, 0, 22)
+OffsetZIncreaseBtn.Name = "IncreaseBtn"
+OffsetZIncreaseBtn.Position = UDim2.new(1, -5, 0.5, 0)
+
+local OffsetZIncreaseBtnCorner = Instance.new("UICorner")
+OffsetZIncreaseBtnCorner.Parent = OffsetZIncreaseBtn
+OffsetZIncreaseBtnCorner.CornerRadius = UDim.new(0, 6)
+
+local zValLabel = Instance.new("TextLabel")
+zValLabel.Name = "Value"
+zValLabel.Parent = OffsetZ
+zValLabel.Size = UDim2.new(0, 91, 0, 20)
+zValLabel.Position = UDim2.new(1, -32, 0.5, 0)
+zValLabel.AnchorPoint = Vector2.new(1, 0.5)
+zValLabel.BackgroundTransparency = 1
+zValLabel.TextColor3 = Color3.fromRGB(231, 231, 231)
+zValLabel.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+zValLabel.TextScaled = true
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local root = character:WaitForChild("HumanoidRootPart")
+local camera = workspace.CurrentCamera
+
+local MAX_LENGTH = 9999
+local currentOffset = Vector3.new(savedConfig.offsetX, savedConfig.offsetY, 0)
+local offsetZVal = savedConfig.offsetZ
+local isEnabled = false
+local cameraConnection
+
+local minScale = 0.5
+local maxScale = 25
+local currentScale = savedConfig.crosshairScale
+local stepValue = 0.1
+
+local enabledColor = Color3.fromRGB(savedConfig.enabledColor[1], savedConfig.enabledColor[2], savedConfig.enabledColor[3])
+local disabledColor = Color3.fromRGB(savedConfig.disabledColor[1], savedConfig.disabledColor[2], savedConfig.disabledColor[3])
+local aimTargetColor = Color3.fromRGB(0, 140, 252)
+
+local function updateOffsetDisplay()
+    OffsetXValue.Text = string.format("%.1f", currentOffset.X)
+    OffsetYValue.Text = string.format("%.1f", currentOffset.Y)
+    zValLabel.Text = string.format("%.1f", offsetZVal)
+end
+
+updateOffsetDisplay()
+
+local function updateCrosshairScale(val)
+    currentScale = math.clamp(val, minScale, maxScale)
+    Crosshair.Size = UDim2.new(0, 32 * currentScale, 0, 32 * currentScale)
+    local pos = (currentScale - minScale) / (maxScale - minScale)
+    Fill.Size = UDim2.new(pos, 0, 1, 0)
+end
+
+updateCrosshairScale(currentScale)
+
+local MenuBlur = Lighting:FindFirstChild("SettingsMenuBlur")
+if not MenuBlur then
+    MenuBlur = Instance.new("BlurEffect")
+    MenuBlur.Name = "SettingsMenuBlur"
+    MenuBlur.Size = 0
+    MenuBlur.Enabled = true
+    MenuBlur.Parent = Lighting
+end
+
+local TWEEN_TIME = 0.3
+local tweenInfo = TweenInfo.new(TWEEN_TIME, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local originalSize = UDim2.new(0.47, 0, 0.49, 0)
+local closedSize = UDim2.new(0.47, 0, 0, 0)
+
+SettingsFrame.Size = closedSize
+SettingsFrame.Visible = false
+SettingsFrame.ClipsDescendants = true
+
+local isTweening = false
+
+SettingsBtn.MouseButton1Click:Connect(function()
+    if isTweening then return end
+    isTweening = true
+
+    if not SettingsFrame.Visible then
+        SettingsFrame.Visible = true
+        local openTween = TweenService:Create(SettingsFrame, tweenInfo, {Size = originalSize})
+        local blurTween = TweenService:Create(MenuBlur, tweenInfo, {Size = 20})
+        openTween:Play()
+        blurTween:Play()
+        openTween.Completed:Connect(function() isTweening = false end)
+    else
+        ColorPickerList.Visible = false
+        local closeTween = TweenService:Create(SettingsFrame, tweenInfo, {Size = closedSize})
+        local blurTween = TweenService:Create(MenuBlur, tweenInfo, {Size = 0})
+        closeTween:Play()
+        blurTween:Play()
+        closeTween.Completed:Connect(function()
+            SettingsFrame.Visible = false
+            isTweening = false
+        end)
+    end
+end)
+
+ColorPreviewBtn.MouseButton1Click:Connect(function()
+    ColorPickerList.Visible = not ColorPickerList.Visible
+    if ColorPickerList.Visible then
+        ColorPickerList.Position = UDim2.new(0.5, 0, 0.5, 0)
+    end
+end)
+
+for i, data in ipairs(presetColors) do
+    local ItemFrame = Instance.new("Frame")
+    ItemFrame.Size = UDim2.new(1, 0, 0, 30)
+    ItemFrame.BackgroundTransparency = 1
+    ItemFrame.Parent = ColorPickerScroll
+
+    local ColorDot = Instance.new("Frame")
+    ColorDot.Size = UDim2.new(0, 16, 0, 16)
+    ColorDot.Position = UDim2.new(0, 5, 0.5, 0)
+    ColorDot.AnchorPoint = Vector2.new(0, 0.5)
+    ColorDot.BackgroundColor3 = data.Color
+    ColorDot.Parent = ItemFrame
+
+    local DotCorner = Instance.new("UICorner")
+    DotCorner.CornerRadius = UDim.new(1, 0)
+    DotCorner.Parent = ColorDot
+
+    local NameBtn = Instance.new("TextButton")
+    NameBtn.Size = UDim2.new(1, -30, 1, 0)
+    NameBtn.Position = UDim2.new(0, 26, 0, 0)
+    NameBtn.BackgroundTransparency = 1
+    NameBtn.Text = data.Name
+    NameBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    NameBtn.TextSize = 13
+    NameBtn.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+    NameBtn.TextXAlignment = Enum.TextXAlignment.Left
+    NameBtn.Parent = ItemFrame
+
+    NameBtn.MouseButton1Click:Connect(function()
+        enabledColor = data.Color
+        ColorPreviewBtn.BackgroundColor3 = data.Color
+        savedConfig.enabledColor = {math.round(data.Color.R * 255), math.round(data.Color.G * 255), math.round(data.Color.B * 255)}
+        saveConfig()
+        if isEnabled then LockIcon.ImageColor3 = enabledColor end
+        ColorPickerList.Visible = false
+    end)
+end
+ColorPickerScroll.CanvasSize = UDim2.new(0, 0, 0, #presetColors * 35)
+
+StepBox.FocusLost:Connect(function()
+    local val = tonumber(StepBox.Text)
+    if val and val > 0 then
+        stepValue = val
+    else
+        StepBox.Text = tostring(stepValue)
+    end
+end)
+
+OffsetXIncreaseBtn.MouseButton1Click:Connect(function()
+    currentOffset = currentOffset + Vector3.new(stepValue, 0, 0)
+    savedConfig.offsetX = currentOffset.X
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+OffsetXReduceBtn.MouseButton1Click:Connect(function()
+    currentOffset = currentOffset + Vector3.new(-stepValue, 0, 0)
+    savedConfig.offsetX = currentOffset.X
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+OffsetYIncreaseBtn.MouseButton1Click:Connect(function()
+    currentOffset = currentOffset + Vector3.new(0, stepValue, 0)
+    savedConfig.offsetY = currentOffset.Y
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+OffsetYReduceBtn.MouseButton1Click:Connect(function()
+    currentOffset = currentOffset + Vector3.new(0, -stepValue, 0)
+    savedConfig.offsetY = currentOffset.Y
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+OffsetZIncreaseBtn.MouseButton1Click:Connect(function()
+    offsetZVal = offsetZVal + stepValue
+    savedConfig.offsetZ = offsetZVal
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+ReduceBtn.MouseButton1Click:Connect(function()
+    offsetZVal = offsetZVal - stepValue
+    savedConfig.offsetZ = offsetZVal
+    saveConfig()
+    updateOffsetDisplay()
+end)
+
+local function handleSlider(input)
+    local sliderBar = ScaleSliderBar
+    local pos = math.clamp((input.Position.X - sliderBar.AbsolutePosition.X) / sliderBar.AbsoluteSize.X, 0, 1)
+    Fill.Size = UDim2.new(pos, 0, 1, 0)
+    local val = minScale + (pos * (maxScale - minScale))
+    updateCrosshairScale(val)
+    savedConfig.crosshairScale = currentScale
+    saveConfig()
+end
+
+local sliderDragging = false
+Handle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = true
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        handleSlider(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = false
+    end
+end)
+
+local function UpdateButtonVisuals(state)
+    LockIcon.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"
+    if state then
+        Crosshair.Visible = true
+        UserInputService.MouseIconEnabled = false
+        LockIcon.ImageColor3 = enabledColor
+    else
+        Crosshair.Visible = false
+        UserInputService.MouseIconEnabled = true
+        LockIcon.ImageColor3 = disabledColor
+    end
+end
+
+WhiteColor.MouseButton1Click:Connect(function()
+    disabledColor = Color3.fromRGB(255, 255, 255)
+    SelectCheck.Parent = WhiteColor
+    savedConfig.disabledColor = {255, 255, 255}
+    saveConfig()
+    if not isEnabled then LockIcon.ImageColor3 = disabledColor end
+end)
+
+RedColor.MouseButton1Click:Connect(function()
+    disabledColor = Color3.fromRGB(255, 56, 56)
+    SelectCheck.Parent = RedColor
+    savedConfig.disabledColor = {255, 56, 56}
+    saveConfig()
+    if not isEnabled then LockIcon.ImageColor3 = disabledColor end
+end)
+
+CrosshairImageBox.FocusLost:Connect(function()
+    local text = string.gsub(CrosshairImageBox.Text, " ", "")
+    if text == "" then
+        Crosshair.Image = "rbxassetid://137321056643916"
+        savedConfig.crosshairImage = "rbxassetid://137321056643916"
+        saveConfig()
+        return
+    end
+    if not string.find(text, "rbxassetid://") then
+        text = "rbxassetid://" .. text
+    end
+    Crosshair.Image = text
+    savedConfig.crosshairImage = text
+    saveConfig()
+end)
+
 local function IsAimingAtPlayer()
     local origin = camera.CFrame.Position
     local direction = camera.CFrame.LookVector * MAX_LENGTH
-    
     local params = RaycastParams.new()
-    params.FilterDescendantsInstances = {character}
+    params.FilterDescendantsInstances = {character, camera}
     params.FilterType = Enum.RaycastFilterType.Blacklist
     
     local result = workspace:Raycast(origin, direction, params)
-    
     if result and result.Instance then
-        local hitModel = result.Instance:FindFirstAncestorOfClass("Model")
-        if hitModel then
-            local hitPlayer = Players:GetPlayerFromCharacter(hitModel)
+        local model = result.Instance:FindFirstAncestorOfClass("Model")
+        if model then
+            local hitPlayer = Players:GetPlayerFromCharacter(model)
             if hitPlayer and hitPlayer ~= player then
                 return true
             end
         end
     end
-    
     return false
 end
 
-local function UpdateButton(state)    
-    if state then    
-        Button.Image = "rbxasset://textures/ui/mouseLock_on@2x.png"    
-        Cursor.Visible = true    
-        UserInputService.MouseIconEnabled = false    
-    else    
-        Button.Image = "rbxasset://textures/ui/mouseLock_off@2x.png"    
-        Cursor.Visible = false    
-        UserInputService.MouseIconEnabled = true    
-        Cursor.ImageColor3 = Color3.fromRGB(255,255,255)
-    end    
-end    
+local function EnableShiftlock()
+    if isEnabled then return end
+    isEnabled = true
+    UpdateButtonVisuals(true)
+    humanoid.AutoRotate = false
     
-local function EnableShiftlock()    
-    if isEnabled then return end    
-    isEnabled = true    
-    UpdateButton(true)    
-    humanoid.AutoRotate = false    
-    
-    connection = RunService.RenderStepped:Connect(function()    
-        local camCF = CFrame.new(    
-            root.Position,    
-            root.Position + Vector3.new(    
-                camera.CFrame.LookVector.X * MAX_LENGTH,    
-                0,    
-                camera.CFrame.LookVector.Z * MAX_LENGTH    
-            )    
-        )    
-        root.CFrame = camCF    
-        camera.CFrame = camera.CFrame * ENABLED_OFFSET    
+    cameraConnection = RunService.RenderStepped:Connect(function()
+        if not root or not humanoid then return end
+        
+        local camCF = CFrame.new(
+            root.Position,
+            root.Position + Vector3.new(
+                camera.CFrame.LookVector.X * MAX_LENGTH,
+                0,
+                camera.CFrame.LookVector.Z * MAX_LENGTH
+            )
+        )
+        root.CFrame = camCF
+       
+        local offsetCFrame = CFrame.new(currentOffset.X, currentOffset.Y, offsetZVal)
+        camera.CFrame = camera.CFrame * offsetCFrame
         
         if IsAimingAtPlayer() then
-            Cursor.ImageColor3 = Color3.fromRGB(0,170,255)
+            Crosshair.ImageColor3 = aimTargetColor
         else
-            Cursor.ImageColor3 = Color3.fromRGB(255,255,255)
+            Crosshair.ImageColor3 = Color3.fromRGB(255, 255, 255)
         end
-    end)    
-end    
-    
-local function DisableShiftlock()    
-    if not isEnabled then return end    
-    isEnabled = false    
-    UpdateButton(false)    
-    humanoid.AutoRotate = true    
-    if connection then    
-        connection:Disconnect()    
-        connection = nil    
-    end    
-end    
-    
-Button.MouseButton1Click:Connect(function()    
-    if isEnabled then    
-        DisableShiftlock()    
-    else    
-        EnableShiftlock()    
-    end    
-end)    
-    
-player.CharacterAdded:Connect(function(newChar)    
-    character = newChar    
-    humanoid = character:WaitForChild("Humanoid")    
-    root = character:WaitForChild("HumanoidRootPart")    
-    DisableShiftlock()    
+    end)
+end
+
+local function DisableShiftlock()
+    if not isEnabled then return end
+    isEnabled = false
+    UpdateButtonVisuals(false)
+    if humanoid then humanoid.AutoRotate = true end
+    if cameraConnection then
+        cameraConnection:Disconnect()
+        cameraConnection = nil
+    end
+end
+
+ShiftLockBtn.MouseButton1Click:Connect(function()
+    if isEnabled then DisableShiftlock() else EnableShiftlock() end
 end)
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    root = character:WaitForChild("HumanoidRootPart")
+    DisableShiftlock()
+end)
+
+if isEnabled then
+    LockIcon.ImageColor3 = enabledColor
+else
+    LockIcon.ImageColor3 = disabledColor
+end
