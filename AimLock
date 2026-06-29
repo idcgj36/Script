@@ -1,0 +1,664 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local LockedTarget = nil
+local AimType = "Aim"
+local TargetPart = "HumanoidRootPart"
+local TeamCheck = false
+local LockDrag = false
+local AllowedNPC = false
+local AimSmooth = 1
+local LockSmooth = 0.5
+
+local CamOffsetX = 0
+local CamOffsetY = 0
+local CamOffsetZ = 0
+
+local old = CoreGui:FindFirstChild("u23Gui")
+if old then old:Destroy() end
+
+local enabled = false
+local settingsOpen = false
+local selectorOpen = false
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "u23Gui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 10
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = CoreGui
+
+local AimLockBtn = Instance.new("TextButton")
+AimLockBtn.Name = "AimLockBtn"
+AimLockBtn.BorderSizePixel = 0
+AimLockBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+AimLockBtn.BackgroundTransparency = 0.15
+AimLockBtn.AnchorPoint = Vector2.new(0.5, 0)
+AimLockBtn.Size = UDim2.new(0, 146, 0, 44)
+AimLockBtn.Position = UDim2.new(0.5, 0, 0, 10)
+AimLockBtn.Text = ""
+AimLockBtn.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = AimLockBtn
+
+local Title = Instance.new("TextLabel")
+Title.BackgroundTransparency = 1
+Title.Text = "AimLock"
+Title.TextScaled = true
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(236,236,236)
+Title.AnchorPoint = Vector2.new(0.5,0.5)
+Title.Size = UDim2.new(0,56,0,18)
+Title.Position = UDim2.new(0.5,-2,0.5,-1)
+Title.Parent = AimLockBtn
+
+local Check = Instance.new("ImageLabel")
+Check.Name = "Check"
+Check.BackgroundTransparency = 1
+Check.Image = "rbxassetid://125390573804889"
+Check.AnchorPoint = Vector2.new(1,0.5)
+Check.Size = UDim2.new(0,51,0,51)
+Check.Position = UDim2.new(1,1,0.5,0)
+Check.ImageTransparency = 1
+Check.Visible = false
+Check.Parent = AimLockBtn
+
+local SettingsBtn = Instance.new("TextButton")
+SettingsBtn.BackgroundTransparency = 1
+SettingsBtn.Size = UDim2.new(0,26,0,34)
+SettingsBtn.AnchorPoint = Vector2.new(0,0.5)
+SettingsBtn.Position = UDim2.new(0,6,0.5,0)
+SettingsBtn.Text = ""
+SettingsBtn.Parent = AimLockBtn
+
+local Icon = Instance.new("ImageLabel")
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://6031280882"
+Icon.AnchorPoint = Vector2.new(0.5,0.5)
+Icon.Size = UDim2.new(0,14,0,14)
+Icon.Position = UDim2.new(0.5,0,0.5,0)
+Icon.Parent = SettingsBtn
+
+local ScrollHolder = Instance.new("Frame")
+ScrollHolder.Name = "ScrollHolder"
+ScrollHolder.Visible = false
+ScrollHolder.ZIndex = -2
+ScrollHolder.BorderSizePixel = 0
+ScrollHolder.BackgroundColor3 = Color3.fromRGB(0,0,0)
+ScrollHolder.BackgroundTransparency = 0
+ScrollHolder.AnchorPoint = Vector2.new(0.5,0)
+ScrollHolder.Size = UDim2.new(0,155,0,345)
+ScrollHolder.Position = UDim2.new(0.5,0,0,-3)
+ScrollHolder.Parent = AimLockBtn
+
+local UICorner2 = Instance.new("UICorner")
+UICorner2.CornerRadius = UDim.new(0,15)
+UICorner2.Parent = ScrollHolder
+
+local SettingsScroll = Instance.new("ScrollingFrame")
+SettingsScroll.BackgroundTransparency = 1
+SettingsScroll.BorderSizePixel = 0
+SettingsScroll.Size = UDim2.new(0,145,0,290)
+SettingsScroll.Position = UDim2.new(0.5,0,1,-7)
+SettingsScroll.AnchorPoint = Vector2.new(0.5,1)
+SettingsScroll.ScrollBarThickness = 0
+SettingsScroll.CanvasSize = UDim2.new(0,0,0,0)
+SettingsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+SettingsScroll.Parent = ScrollHolder
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0,8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.Parent = SettingsScroll
+
+local PartSelectorFrame = Instance.new("Frame")
+PartSelectorFrame.Name = "PartSelectorFrame"
+PartSelectorFrame.Size = UDim2.new(0, 145, 0, 252)
+PartSelectorFrame.Position = UDim2.new(0.5, 78, 0, 0)
+PartSelectorFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+PartSelectorFrame.BackgroundTransparency = 0
+PartSelectorFrame.Visible = false
+PartSelectorFrame.Parent = AimLockBtn
+
+local UICornerSelector = Instance.new("UICorner")
+UICornerSelector.CornerRadius = UDim.new(0, 15)
+UICornerSelector.Parent = PartSelectorFrame
+
+local CharacterSelectFrame = Instance.new("Frame")
+CharacterSelectFrame.Name = "CharacterSelectFrame"
+CharacterSelectFrame.Size = UDim2.new(0, 120, 0, 140)
+CharacterSelectFrame.Position = UDim2.new(0.5, -60, 0, 8)
+CharacterSelectFrame.BackgroundTransparency = 1
+CharacterSelectFrame.Parent = PartSelectorFrame
+
+local OffsetFrame = Instance.new("Frame")
+OffsetFrame.Name = "OffsetFrame"
+OffsetFrame.Size = UDim2.new(0, 125, 0, 88)
+OffsetFrame.AnchorPoint = Vector2.new(0.5,1)
+OffsetFrame.Position = UDim2.new(0.5, 0, 1, -10)
+OffsetFrame.BackgroundTransparency = 1
+OffsetFrame.Parent = PartSelectorFrame
+
+local OffsetList = Instance.new("UIListLayout")
+OffsetList.Padding = UDim.new(0, 5)
+OffsetList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+OffsetList.Parent = OffsetFrame
+
+local dragging = false
+local dragStart, startPos
+local hasDragged = false
+
+AimLockBtn.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not UserInputService:GetFocusedTextBox() then
+        hasDragged = false
+        if not LockDrag then
+            dragging = true
+            dragStart = input.Position
+            startPos = AimLockBtn.Position
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and not LockDrag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        if delta.Magnitude > 5 then
+            hasDragged = true
+        end
+        AimLockBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+local function CreateSlider(name, min, max, start, step, callback)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Size = UDim2.new(0, 135, 0, 45)
+    SliderFrame.BackgroundTransparency = 1
+    SliderFrame.Parent = SettingsScroll
+
+    local Label = Instance.new("TextLabel") 
+    Label.Size = UDim2.new(1, 0, 0, 15) 
+    Label.BackgroundTransparency = 1 
+    Label.Text = name .. ": " .. string.format("%.2f", start)
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255) 
+    Label.Font = Enum.Font.SourceSansBold 
+    Label.TextSize = 14 
+    Label.Parent = SliderFrame 
+
+    local SliderBack = Instance.new("Frame") 
+    SliderBack.Size = UDim2.new(1, 0, 0, 14) 
+    SliderBack.Position = UDim2.new(0, 0, 0, 22) 
+    SliderBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45) 
+    SliderBack.BorderSizePixel = 0 
+    SliderBack.Parent = SliderFrame 
+    Instance.new("UICorner", SliderBack).CornerRadius = UDim.new(1, 0) 
+
+    local SliderFillContainer = Instance.new("Frame")
+    SliderFillContainer.Size = UDim2.new(1, 0, 1, 0)
+    SliderFillContainer.BackgroundTransparency = 1
+    SliderFillContainer.ClipsDescendants = true
+    SliderFillContainer.Parent = SliderBack
+    Instance.new("UICorner", SliderFillContainer).CornerRadius = UDim.new(1, 0)
+
+    local SliderFill = Instance.new("Frame") 
+    SliderFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+    SliderFill.BorderSizePixel = 0 
+    SliderFill.Parent = SliderFillContainer 
+    Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+
+    local Knob = Instance.new("Frame") 
+    Knob.Size = UDim2.new(0, 24, 0, 14) 
+    Knob.AnchorPoint = Vector2.new(0, 0.5) 
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+    Knob.BorderSizePixel = 0 
+    Knob.Parent = SliderBack 
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0) 
+
+    local sliderDragging = false 
+    
+    local function update(input) 
+        local totalWidth = SliderBack.AbsoluteSize.X
+        local usableWidth = totalWidth - 24
+        local mouseX = input.Position.X - SliderBack.AbsolutePosition.X
+        local currentXOffset = math.clamp(mouseX - 12, 0, usableWidth)
+        
+        local pos = usableWidth > 0 and (currentXOffset / usableWidth) or 0
+        local value = min + (max - min) * pos
+        
+        if step and step > 0 then
+            value = math.floor(value / step + 0.5) * step
+        end
+        value = math.clamp(value, min, max) 
+        
+        local exactPercent = (value - min) / (max - min)
+        local knobOffset = exactPercent * usableWidth
+        local fillWidth = knobOffset + 24
+
+        TweenService:Create(Knob, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0, knobOffset, 0.5, 0)}):Play() 
+        TweenService:Create(SliderFill, TweenInfo.new(0.05, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, fillWidth, 1, 0)}):Play() 
+        
+        Label.Text = name .. ": " .. string.format("%.2f", value) 
+        callback(value) 
+    end 
+
+    local initPercent = (start - min) / (max - min)
+    local initUsable = 135 - 24
+    local initKnobOffset = initPercent * initUsable
+    Knob.Position = UDim2.new(0, initKnobOffset, 0.5, 0)
+    SliderFill.Size = UDim2.new(0, initKnobOffset + 24, 1, 0)
+    
+    SliderBack.InputBegan:Connect(function(input) 
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+            sliderDragging = true 
+            update(input) 
+        end 
+    end) 
+    
+    Knob.InputBegan:Connect(function(input) 
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+            sliderDragging = true 
+        end 
+    end) 
+    
+    UserInputService.InputEnded:Connect(function(input) 
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then 
+            sliderDragging = false 
+        end 
+    end) 
+    
+    UserInputService.InputChanged:Connect(function(input) 
+        if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then 
+            update(input) 
+        end 
+    end) 
+end
+
+local function CreateToggle(text, startState, callback)
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0, 120, 0, 36)
+    ToggleBtn.BackgroundTransparency = 1
+    ToggleBtn.Text = ""
+    ToggleBtn.Parent = SettingsScroll
+
+    local Label = Instance.new("TextLabel") 
+    Label.Size = UDim2.new(1, -45, 1, 0) 
+    Label.Position = UDim2.new(0, 0, 0, 0) 
+    Label.BackgroundTransparency = 1 
+    Label.Text = text 
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255) 
+    Label.Font = Enum.Font.SourceSansBold 
+    Label.TextSize = 14 
+    Label.TextXAlignment = Enum.TextXAlignment.Left 
+    Label.Parent = ToggleBtn 
+
+    local ToggleBack = Instance.new("Frame") 
+    ToggleBack.Size = UDim2.new(0, 36, 0, 18) 
+    ToggleBack.Position = UDim2.new(1, -36, 0.5, -9) 
+    ToggleBack.BackgroundColor3 = startState and Color3.fromRGB(175, 175, 175) or Color3.fromRGB(40, 40, 40) 
+    ToggleBack.BorderSizePixel = 0 
+    ToggleBack.Parent = ToggleBtn 
+    Instance.new("UICorner", ToggleBack).CornerRadius = UDim.new(1, 0) 
+
+    local ToggleKnob = Instance.new("Frame") 
+    ToggleKnob.Size = UDim2.new(0, 20, 0, 14) 
+    ToggleKnob.AnchorPoint = Vector2.new(0, 0.5) 
+    ToggleKnob.Position = startState and UDim2.new(1, -22, 0.5, 0) or UDim2.new(0, 2, 0.5, 0) 
+    ToggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+    ToggleKnob.BorderSizePixel = 0 
+    ToggleKnob.Parent = ToggleBack 
+    Instance.new("UICorner", ToggleKnob).CornerRadius = UDim.new(1, 0) 
+
+    local state = startState 
+    ToggleBtn.MouseButton1Click:Connect(function() 
+        state = not state 
+        local targetPos = state and UDim2.new(1, -22, 0.5, 0) or UDim2.new(0, 2, 0.5, 0) 
+        local targetColor = state and Color3.fromRGB(175, 175, 175) or Color3.fromRGB(40, 40, 40) 
+        TweenService:Create(ToggleKnob, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = targetPos}):Play() 
+        TweenService:Create(ToggleBack, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = targetColor}):Play() 
+        callback(state) 
+    end) 
+    return ToggleBtn 
+end
+
+local function CreateOffsetRow(axisName, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 26)
+    Row.BackgroundTransparency = 1
+    Row.Parent = OffsetFrame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0, 20, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = axisName
+    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Label.Font = Enum.Font.SourceSansBold
+    Label.TextSize = 14
+    Label.Parent = Row
+
+    local ValueDisplay = Instance.new("TextLabel")
+    ValueDisplay.Size = UDim2.new(0, 45, 1, 0)
+    ValueDisplay.Position = UDim2.new(0, 22, 0, 0)
+    ValueDisplay.BackgroundTransparency = 1
+    ValueDisplay.Text = "0.0"
+    ValueDisplay.TextColor3 = Color3.fromRGB(200, 200, 200)
+    ValueDisplay.Font = Enum.Font.SourceSansBold
+    ValueDisplay.TextSize = 14
+    ValueDisplay.Parent = Row
+
+    local MinusBtn = Instance.new("TextButton")
+    MinusBtn.Size = UDim2.new(0, 24, 0, 22)
+    MinusBtn.Position = UDim2.new(0, 70, 0.5, -11)
+    MinusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinusBtn.Font = Enum.Font.SourceSansBold
+    MinusBtn.Text = "-"
+    MinusBtn.TextSize = 16
+    MinusBtn.Parent = Row
+    Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 4)
+
+    local PlusBtn = Instance.new("TextButton")
+    PlusBtn.Size = UDim2.new(0, 24, 0, 22)
+    PlusBtn.Position = UDim2.new(0, 98, 0.5, -11)
+    PlusBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PlusBtn.Font = Enum.Font.SourceSansBold
+    PlusBtn.Text = "+"
+    PlusBtn.TextSize = 16
+    PlusBtn.Parent = Row
+    Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 4)
+
+    local val = 0
+    local function updateVal(newVal)
+        val = math.clamp(newVal, -20, 20)
+        ValueDisplay.Text = string.format("%.1f", val)
+        callback(val)
+    end
+
+    MinusBtn.MouseButton1Click:Connect(function() updateVal(val - 0.5) end)
+    PlusBtn.MouseButton1Click:Connect(function() updateVal(val + 0.5) end)
+end
+
+local TypeSwitch = Instance.new("TextButton")
+TypeSwitch.Size = UDim2.new(0, 120, 0, 30)
+TypeSwitch.BackgroundTransparency = 1
+TypeSwitch.TextColor3 = Color3.fromRGB(255, 255, 255)
+TypeSwitch.Font = Enum.Font.SourceSansBold
+TypeSwitch.Text = "<   " .. AimType .. "   >"
+TypeSwitch.TextSize = 15
+TypeSwitch.Parent = SettingsScroll
+
+TypeSwitch.MouseButton1Click:Connect(function()
+    AimType = (AimType == "Aim" and "Lock" or "Aim")
+    TypeSwitch.Text = "<   " .. AimType .. "   >"
+end)
+
+CreateToggle("Team Check", TeamCheck, function(v)
+    TeamCheck = v
+end)
+
+CreateToggle("Lock Dragging", LockDrag, function(v)
+    LockDrag = v
+    if LockDrag then
+        dragging = false
+        selectorDragging = false
+        hasDragged = false
+    end
+end)
+
+CreateToggle("Allowed NPC", AllowedNPC, function(v)
+    AllowedNPC = v
+end)
+
+local OpenPartBtn = Instance.new("TextButton")
+OpenPartBtn.Size = UDim2.new(0, 120, 0, 30)
+OpenPartBtn.BackgroundTransparency = 0.6
+OpenPartBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+OpenPartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenPartBtn.Font = Enum.Font.SourceSansBold
+OpenPartBtn.Text = "Open Setup"
+OpenPartBtn.TextSize = 14
+OpenPartBtn.Parent = SettingsScroll
+Instance.new("UICorner", OpenPartBtn).CornerRadius = UDim.new(0, 8)
+
+OpenPartBtn.MouseButton1Click:Connect(function()
+    selectorOpen = not selectorOpen
+    PartSelectorFrame.Visible = selectorOpen
+end)
+
+CreateSlider("Aim Smooth", 0.05, 1, 0.8, 0.01, function(v) AimSmooth = v end)
+CreateSlider("Lock Smooth", 0.05, 1, 0.35, 0.01, function(v) LockSmooth = v end)
+
+local CharacterButtons = {}
+
+local function createPartButton(name, size, pos, targetPartName)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.BackgroundTransparency = 0.2
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.Parent = CharacterSelectFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+    CharacterButtons[targetPartName] = btn 
+    btn.MouseButton1Click:Connect(function() 
+        TargetPart = targetPartName 
+        for pName, b in pairs(CharacterButtons) do 
+            if pName == TargetPart then 
+                b.BackgroundTransparency = 0 
+                b.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+            else 
+                b.BackgroundTransparency = 0.2 
+                b.BackgroundColor3 = Color3.fromRGB(45, 45, 45) 
+            end 
+        end 
+    end) 
+end
+
+createPartButton("Head", UDim2.new(0, 26, 0, 24), UDim2.new(0.5, -13, 0, 4), "Head")
+createPartButton("Torso", UDim2.new(0, 54, 0, 50), UDim2.new(0.5, -27, 0, 32), "HumanoidRootPart")
+createPartButton("LeftArm", UDim2.new(0, 24, 0, 50), UDim2.new(0.5, -55, 0, 32), "LeftHand")
+createPartButton("RightArm", UDim2.new(0, 24, 0, 50), UDim2.new(0.5, 31, 0, 32), "RightHand")
+createPartButton("LeftLeg", UDim2.new(0, 25, 0, 50), UDim2.new(0.5, -27, 0, 86), "LeftFoot")
+createPartButton("RightLeg", UDim2.new(0, 25, 0, 50), UDim2.new(0.5, 2, 0, 86), "RightFoot")
+
+if CharacterButtons["HumanoidRootPart"] then
+    CharacterButtons["HumanoidRootPart"].BackgroundTransparency = 0
+    CharacterButtons["HumanoidRootPart"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+CreateOffsetRow("X", function(v) CamOffsetX = v end)
+CreateOffsetRow("Y", function(v) CamOffsetY = v end)
+CreateOffsetRow("Z", function(v) CamOffsetZ = v end)
+
+local selectorDragging = false
+local selectorDragStart, selectorStartPos
+
+PartSelectorFrame.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not UserInputService:GetFocusedTextBox() then
+        if not LockDrag then
+            selectorDragging = true
+            selectorDragStart = input.Position
+            selectorStartPos = PartSelectorFrame.Position
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if selectorDragging and not LockDrag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - selectorDragStart
+        PartSelectorFrame.Position = UDim2.new(selectorStartPos.X.Scale, selectorStartPos.X.Offset + delta.X, selectorStartPos.Y.Scale, selectorStartPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        selectorDragging = false
+    end
+end)
+
+local Highlight = Instance.new("Highlight")
+Highlight.OutlineTransparency = 0
+Highlight.FillTransparency = 0.5
+Highlight.Parent = nil
+
+local function getClosestTarget()
+    local closest = nil
+    local shortestDistance = math.huge
+
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            if TeamCheck and v.Team == LocalPlayer.Team then continue end
+            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if distance < shortestDistance then
+                    closest = v.Character
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    if AllowedNPC then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and obj ~= LocalPlayer.Character then
+                local hum = obj.Humanoid
+                if hum.Health > 0 then
+                    local pos, onScreen = Camera:WorldToViewportPoint(obj.HumanoidRootPart.Position)
+                    if onScreen then
+                        local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                        if distance < shortestDistance then
+                            closest = obj
+                            shortestDistance = distance
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    if enabled then
+        if (not LockedTarget) or (not LockedTarget.Parent) or (not LockedTarget:FindFirstChild("HumanoidRootPart")) or (LockedTarget:FindFirstChild("Humanoid") and LockedTarget.Humanoid.Health <= 0) then
+            LockedTarget = getClosestTarget()
+        end
+
+        if LockedTarget and LockedTarget:FindFirstChild("HumanoidRootPart") then
+            local isNPC = not Players:GetPlayerFromCharacter(LockedTarget)
+            if not isNPC and TeamCheck then
+                local p = Players:GetPlayerFromCharacter(LockedTarget)
+                if p and p.Team == LocalPlayer.Team then
+                    LockedTarget = nil
+                    Highlight.Parent = nil
+                    return
+                end
+            end
+
+            local targetHit = nil 
+            if TargetPart == "HumanoidRootPart" then 
+                targetHit = LockedTarget:FindFirstChild("HumanoidRootPart") or LockedTarget:FindFirstChild("UpperTorso") or LockedTarget:FindFirstChild("Torso") 
+            elseif TargetPart == "Head" then 
+                targetHit = LockedTarget:FindFirstChild("Head") 
+            elseif TargetPart == "LeftHand" then 
+                targetHit = LockedTarget:FindFirstChild("LeftHand") or LockedTarget:FindFirstChild("Left Arm") 
+            elseif TargetPart == "RightHand" then 
+                targetHit = LockedTarget:FindFirstChild("RightHand") or LockedTarget:FindFirstChild("Right Arm") 
+            elseif TargetPart == "LeftFoot" then 
+                targetHit = LockedTarget:FindFirstChild("LeftFoot") or LockedTarget:FindFirstChild("Left Leg") 
+            elseif TargetPart == "RightFoot" then 
+                targetHit = LockedTarget:FindFirstChild("RightFoot") or LockedTarget:FindFirstChild("Right Leg") 
+            end 
+            
+            local root = LockedTarget:FindFirstChild("HumanoidRootPart") 
+            local hum = LockedTarget:FindFirstChild("Humanoid") 
+            
+            if root and targetHit and hum and hum.Health > 0 then 
+                Highlight.Parent = LockedTarget
+                if isNPC then
+                    Highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    Highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                else
+                    local color = Color3.fromHSV(tick() % 5 / 5, 1, 1) 
+                    Highlight.FillColor = color 
+                    Highlight.OutlineColor = color 
+                end
+
+                local offsetVector = Vector3.new(CamOffsetX, CamOffsetY, CamOffsetZ)
+                local finalTargetPos = targetHit.Position + offsetVector
+
+                if AimType == "Aim" then 
+                    local targetCF = CFrame.new(Camera.CFrame.Position, finalTargetPos) 
+                    Camera.CFrame = Camera.CFrame:Lerp(targetCF, AimSmooth) 
+                elseif AimType == "Lock" then 
+                    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if myRoot then 
+                        local targetLookPos = Vector3.new(finalTargetPos.X, myRoot.Position.Y, finalTargetPos.Z) 
+                        local targetCF = CFrame.new(myRoot.Position, targetLookPos) 
+                        myRoot.CFrame = myRoot.CFrame:Lerp(targetCF, LockSmooth) 
+                    end 
+                end 
+            else 
+                Highlight.Parent = nil 
+            end 
+        else 
+            Highlight.Parent = nil 
+        end 
+    else 
+        Highlight.Parent = nil 
+    end 
+end)
+
+local function tween(obj, info, props) TweenService:Create(obj, info, props):Play() end
+
+local function setAim(v)
+    enabled = v
+    if enabled then
+        Check.Visible = true
+        tween(Check, TweenInfo.new(0.2), {ImageTransparency = 0})
+        tween(AimLockBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.05})
+    else
+        LockedTarget = nil
+        tween(Check, TweenInfo.new(0.2), {ImageTransparency = 1})
+        tween(AimLockBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.15})
+        task.delay(0.2, function() if not enabled then Check.Visible = false end end)
+    end
+end
+
+local function toggleSettings()
+    settingsOpen = not settingsOpen
+    ScrollHolder.Visible = settingsOpen
+    if not settingsOpen then
+        selectorOpen = false
+        PartSelectorFrame.Visible = false
+    end
+end
+
+AimLockBtn.MouseButton1Click:Connect(function()
+    if LockDrag or not hasDragged then
+        setAim(not enabled)
+    end
+end)
+
+SettingsBtn.MouseButton1Click:Connect(function() toggleSettings() end)
+ScreenGui.Destroying:Connect(function() enabled = false Highlight:Destroy() end)
