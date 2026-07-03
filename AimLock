@@ -34,7 +34,7 @@ local ElementsOrder = {
     
     OffsetX = 1,
     OffsetY = 2,
-    OffsetZ = 3
+    OffsetZ = 3,
     
     PredictionX = 1,
     PredictionY = 2,
