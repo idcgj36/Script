@@ -1,34 +1,32 @@
-if _G.a then
-    for _, v in pairs(_G.a) do
+if InvisibleConnections then
+    for _, v in pairs(InvisibleConnections) do
         v:Disconnect()
     end
-    _G.a = nil
+    InvisibleConnections = nil
 end
 
-if _G.InvisibleGui then
+if InvisibleGui then
     pcall(function()
-        _G.InvisibleEnabled = false
-        _G.InvisibleGui:Destroy()
+        InvisibleEnabled = false
+        InvisibleGui:Destroy()
     end)
 end
-
-_G.WertUiAnimation = true
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local Character, Humanoid, RootPart
 local InvisibleEnabled = false
-_G.InvisibleEnabled = false
+local IsLocked = false
 
 local Parts = {}
 local OriginalTransparency = {}
-
 local LastCF = nil
 
 local function CacheParts()
@@ -82,62 +80,124 @@ ScreenGui.Name = "Invisible"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 10
 ScreenGui.Parent = CoreGui
-_G.InvisibleGui = ScreenGui
+InvisibleGui = ScreenGui
 
 local InvisibleBtn = Instance.new("TextButton")
-InvisibleBtn.Parent = ScreenGui
+InvisibleBtn.Name = "InvisibleBtn"
 InvisibleBtn.BorderSizePixel = 0
 InvisibleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+InvisibleBtn.BackgroundTransparency = 0.15
 InvisibleBtn.AnchorPoint = Vector2.new(0.5, 0)
-InvisibleBtn.BackgroundTransparency = 0.1
-InvisibleBtn.Size = UDim2.new(0, 120, 0, 43)
+InvisibleBtn.Size = UDim2.new(0, 146, 0, 44)
+InvisibleBtn.Position = UDim2.new(0.5, 0, 0, 35)
 InvisibleBtn.Text = ""
-InvisibleBtn.Name = "InvisibleBtn"
-InvisibleBtn.Position = UDim2.new(0.5, 0, 0, 14)
-InvisibleBtn.Active = true
-InvisibleBtn.Draggable = true
+InvisibleBtn.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.Parent = InvisibleBtn
 UICorner.CornerRadius = UDim.new(0, 15)
-
-local Check = Instance.new("ImageLabel")
-Check.Parent = InvisibleBtn
-Check.BorderSizePixel = 0
-Check.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Check.AnchorPoint = Vector2.new(1, 0.5)
-Check.Image = "rbxassetid://125390573804889"
-Check.Size = UDim2.new(0, 51, 0, 51)
-Check.BackgroundTransparency = 1
-Check.Name = "Check"
-Check.Position = UDim2.new(1, 1, 0.5, 0)
-Check.ImageTransparency = 1
+UICorner.Parent = InvisibleBtn
 
 local Title = Instance.new("TextLabel")
-Title.Parent = InvisibleBtn
-Title.TextWrapped = true
-Title.BorderSizePixel = 0
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.TextScaled = true
-Title.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextColor3 = Color3.fromRGB(236, 236, 236)
 Title.BackgroundTransparency = 1
-Title.AnchorPoint = Vector2.new(0, 0.5)
-Title.Size = UDim2.new(0, 92, 0, 18)
 Title.Text = "Invisible"
-Title.Name = "Title"
-Title.Position = UDim2.new(0, 13, 0.5, -1)
+Title.TextScaled = true
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(236,236,236)
+Title.AnchorPoint = Vector2.new(0.5,0.5)
+Title.Size = UDim2.new(0,56,0,18)
+Title.Position = UDim2.new(0.5,-2,0.5,-1)
+Title.Parent = InvisibleBtn
+
+local Check = Instance.new("ImageLabel")
+Check.Name = "Check"
+Check.BackgroundTransparency = 1
+Check.Image = "rbxassetid://125390573804889"
+Check.AnchorPoint = Vector2.new(1,0.5)
+Check.Size = UDim2.new(0,51,0,51)
+Check.Position = UDim2.new(1,1,0.5,0)
+Check.ImageTransparency = 1
+Check.Visible = false
+Check.Parent = InvisibleBtn
+
+local LockMove = Instance.new("TextButton")
+LockMove.BackgroundTransparency = 1
+LockMove.Size = UDim2.new(0,26,0,34)
+LockMove.AnchorPoint = Vector2.new(0,0.5)
+LockMove.Position = UDim2.new(0,6,0.5,0)
+LockMove.Text = ""
+LockMove.Parent = InvisibleBtn
+
+local Icon = Instance.new("ImageLabel")
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://131243965606901"
+Icon.AnchorPoint = Vector2.new(0.5,0.5)
+Icon.Size = UDim2.new(0,16,0,16)
+Icon.Position = UDim2.new(0.5,0,0.5,0)
+Icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+Icon.Parent = LockMove
+
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    InvisibleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+InvisibleBtn.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not IsLocked then
+        dragging = true
+        dragStart = input.Position
+        startPos = InvisibleBtn.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+InvisibleBtn.InputChanged:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and not IsLocked then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging and not IsLocked then
+        update(input)
+    end
+end)
+
+LockMove.MouseButton1Click:Connect(function()
+    IsLocked = not IsLocked
+    if IsLocked then
+        Icon.ImageColor3 = Color3.fromRGB(255, 255, 0)
+        Icon.Image = "rbxassetid://78340628553221"
+    else
+        Icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        Icon.Image = "rbxassetid://131243965606901"
+    end
+end)
 
 local function UpdateCheck(state)
+    if state then
+        Check.Visible = true
+    end
     TweenService:Create(Check, TweenInfo.new(0.25), {
         ImageTransparency = state and 0 or 1
     }):Play()
+    task.delay(0.25, function()
+        if not state then
+            Check.Visible = false
+        end
+    end)
 end
 
 InvisibleBtn.MouseButton1Click:Connect(function()
     InvisibleEnabled = not InvisibleEnabled
-    _G.InvisibleEnabled = InvisibleEnabled
 
     if not InvisibleEnabled then        
         if RootPart and LastCF then
@@ -181,4 +241,4 @@ Connections[1] = RunService.Heartbeat:Connect(function()
     SetTransparency(0.76)
 end)
 
-_G.a = Connections
+InvisibleConnections = Connections
